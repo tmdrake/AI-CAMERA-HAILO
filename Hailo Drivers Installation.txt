@@ -1,0 +1,15 @@
+https://www.raspberrypi.com/documentation/computers/ai.html
+https://github.com/hailo-ai/hailo-apps
+https://github.com/hailo-ai/hailo-apps/blob/main/doc/user_guide/configuration.md
+https://github.com/hailo-ai/ <- the Vender
+
+
+This what "$ hailortcli fw-control identify" sees if installed.
+
+Executing on device: 0001:01:00.0
+Identifying board
+Control Protocol Version: 2
+Firmware Version: 4.23.0 (release,app,extended context switch buffer)
+Logger Version: 0
+Board Name: Hailo-8
+Device Architecture: HAILO8

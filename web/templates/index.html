@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AI Camera{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2 class="mb-4">Dashboard</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">System Status</h5>
+                <p>
+                    <span class="status-indicator status-running"></span>
+                    <span id="systemStatus">Running</span>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Total Events</h5>
+                <h2 id="totalEvents">0</h2>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Last Detection</h5>
+                <p id="lastDetection">No detections yet</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Recent Events</h5>
+                <div id="recentEvents">
+                    <p class="text-muted">No events recorded</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateStatus() {
+    fetch('/api/status')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('totalEvents').textContent = data.detections;
+        });
+    
+    fetch('/api/events')
+        .then(response => response.json())
+        .then(events => {
+            const container = document.getElementById('recentEvents');
+            if (events.length === 0) {
+                container.innerHTML = '<p class="text-muted">No events recorded</p>';
+                return;
+            }
+            
+            let html = '<table class="table table-sm"><thead><tr><th>Time</th><th>Detections</th></tr></thead><tbody>';
+            events.slice(0, 10).forEach(event => {
+                const time = new Date(event.timestamp).toLocaleString();
+                const detectionCount = event.detections.length;
+                html += `<tr><td>${time}</td><td>${detectionCount} person(s)</td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+            
+            if (events.length > 0) {
+                const lastEvent = new Date(events[0].timestamp).toLocaleString();
+                document.getElementById('lastDetection').textContent = lastEvent;
+            }
+        });
+}
+
+updateStatus();
+setInterval(updateStatus, 5000);
+</script>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - AI Camera{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2 class="mb-4">Settings</h2>
+    </div>
+</div>
+
+<form method="POST">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Detection Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="confidence_threshold" class="form-label">Confidence Threshold</label>
+                        <input type="range" class="form-range" min="0" max="1" step="0.1" id="confidence_threshold" name="detection.confidence_threshold" value="{{ config.get('detection', {}).get('confidence_threshold', 0.5) }}">
+                        <span id="thresholdValue">{{ config.get('detection', {}).get('confidence_threshold', 0.5) }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Recording Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="recording_enabled" name="recording.enabled" {% if config.get('recording', {}).get('enabled', True) %}checked{% endif %}>
+                        <label class="form-check-label" for="recording_enabled">Enable Recording</label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="retention_days" class="form-label">Retention Days</label>
+                        <input type="number" class="form-control" id="retention_days" name="recording.retention_days" value="{{ config.get('recording', {}).get('retention_days', 90) }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Alert Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="alerts_enabled" name="alerts.enabled" {% if config.get('alerts', {}).get('enabled', True) %}checked{% endif %}>
+                        <label class="form-check-label" for="alerts_enabled">Enable Alerts</label>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="email_enabled" name="alerts.email.enabled" {% if config.get('alerts', {}).get('email', {}).get('enabled', False) %}checked{% endif %}>
+                        <label class="form-check-label" for="email_enabled">Enable Email Alerts</label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="smtp_host" class="form-label">SMTP Host</label>
+                        <input type="text" class="form-control" id="smtp_host" name="alerts.email.smtp_host" value="{{ config.get('alerts', {}).get('email', {}).get('smtp_host', 'smtp.gmail.com') }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="sender_email" class="form-label">Sender Email</label>
+                        <input type="email" class="form-control" id="sender_email" name="alerts.email.sender_email" value="{{ config.get('alerts', {}).get('email', {}).get('sender_email', '') }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="sender_password" class="form-label">Sender Password</label>
+                        <input type="password" class="form-control" id="sender_password" name="alerts.email.sender_password" value="{{ config.get('alerts', {}).get('email', {}).get('sender_password', '') }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="recipient_emails" class="form-label">Recipient Emails (comma-separated)</label>
+                        <input type="text" class="form-control" id="recipient_emails" name="alerts.email.recipient_emails" value="{{ config.get('alerts', {}).get('email', {}).get('recipient_emails', []) | join(', ') }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="cooldown_seconds" class="form-label">Cooldown (seconds)</label>
+                        <input type="number" class="form-control" id="cooldown_seconds" name="alerts.cooldown_seconds" value="{{ config.get('alerts', {}).get('cooldown_seconds', 60) }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Web Server Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="web_username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="web_username" name="web_server.username" value="{{ config.get('web_server', {}).get('username', 'admin') }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="web_password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="web_password" name="web_server.password" value="{{ config.get('web_server', {}).get('password', 'admin123') }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="web_port" class="form-label">Port</label>
+                        <input type="number" class="form-control" id="web_port" name="web_server.port" value="{{ config.get('web_server', {}).get('port', 5000) }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const thresholdSlider = document.getElementById('confidence_threshold');
+const thresholdValue = document.getElementById('thresholdValue');
+
+thresholdSlider.addEventListener('input', function() {
+    thresholdValue.textContent = this.value;
+});
+</script>
+{% endblock %}

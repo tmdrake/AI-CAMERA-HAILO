@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Events - AI Camera{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2 class="mb-4">Events</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="eventsList">
+                    <p class="text-muted">Loading events...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function loadEvents() {
+    fetch('/api/events')
+        .then(response => response.json())
+        .then(events => {
+            const container = document.getElementById('eventsList');
+            if (events.length === 0) {
+                container.innerHTML = '<p class="text-muted">No events recorded</p>';
+                return;
+            }
+            
+            let html = '<table class="table table-striped"><thead><tr><th>Time</th><th>Detections</th><th>Confidence</th></tr></thead><tbody>';
+            events.forEach(event => {
+                const time = new Date(event.timestamp).toLocaleString();
+                const detectionCount = event.detections.length;
+                const confidences = event.detections.map(d => (d.confidence * 100).toFixed(1) + '%').join(', ');
+                html += `<tr><td>${time}</td><td>${detectionCount} person(s)</td><td>${confidences}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        });
+}
+
+loadEvents();
+setInterval(loadEvents, 10000);
+</script>
+{% endblock %}

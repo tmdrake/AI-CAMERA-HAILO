@@ -1,0 +1,17 @@
+[Unit]
+Description=AI Camera Service
+After=network.target
+
+[Service]
+Type=simple
+User=dennisl
+WorkingDirectory=/home/dennisl/AI-Camera
+ExecStart=/usr/bin/python3 /home/dennisl/AI-Camera/src/app.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/dennisl/AI-Camera/logs/stdout.log
+StandardError=append:/home/dennisl/AI-Camera/logs/stderr.log
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

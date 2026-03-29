@@ -1,0 +1,45 @@
+{
+    "detection": {
+        "confidence_threshold": 0.5,
+        "person_class_only": true,
+        "model_path": "/usr/share/hailo-models/yolov8n_persons/hailo8n_persons.yolov8n_pose"
+    },
+    "recording": {
+        "enabled": true,
+        "storage_path": "recordings",
+        "retention_days": 90,
+        "record_duration_seconds": 30,
+        "pre_buffer_seconds": 5
+    },
+    "alerts": {
+        "enabled": true,
+        "email": {
+            "enabled": false,
+            "smtp_host": "smtp.gmail.com",
+            "smtp_port": 587,
+            "use_tls": true,
+            "sender_email": "",
+            "sender_password": "",
+            "recipient_emails": []
+        },
+        "cooldown_seconds": 60
+    },
+    "web_server": {
+        "host": "0.0.0.0",
+        "port": 5000,
+        "username": "admin",
+        "password": "admin123"
+    },
+    "camera": {
+        "width": 1920,
+        "height": 1080,
+        "framerate": 30,
+        "rotation": 0
+    },
+    "schedule": {
+        "enabled": false,
+        "active_hours": [
+            {"start": "00:00", "end": "23:59"}
+        ]
+    }
+}

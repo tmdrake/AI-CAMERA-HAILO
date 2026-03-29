@@ -1,0 +1,5 @@
+picamera2
+hailort
+opencv-python
+numpy
+flask

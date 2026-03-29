@@ -1,0 +1,22 @@
+{
+  "detection": {
+    "threshold": 0.5,
+    "model": "yolov8n_person.hef"
+  },
+  "email": {
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "username": "your_email@gmail.com",
+    "password": "your_app_password",
+    "to": "alerts@yourdomain.com"
+  },
+  "recording": {
+    "duration": 10,
+    "fps": 30,
+    "resolution": [640, 480]
+  },
+  "web": {
+    "port": 5000,
+    "host": "0.0.0.0"
+  }
+}
