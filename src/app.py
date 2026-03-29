@@ -23,7 +23,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+app = Flask(__name__, template_folder=os.path.join(BASE_DIR, 'web', 'templates'))
 app.secret_key = 'ai-camera-secret-key-change-in-production'
 
 login_manager = LoginManager()
