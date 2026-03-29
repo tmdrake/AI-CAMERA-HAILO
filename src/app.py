@@ -9,6 +9,9 @@ import io
 from datetime import datetime
 from typing import Optional
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BASE_DIR)
+
 import numpy as np
 from flask import Flask, render_template, Response, request, jsonify, redirect, url_for, session
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -23,7 +26,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 app = Flask(__name__, template_folder=os.path.join(BASE_DIR, 'web', 'templates'))
 app.secret_key = 'ai-camera-secret-key-change-in-production'
 
@@ -51,7 +53,6 @@ def init_camera():
     global camera
     try:
         from picamera2 import Picamera2
-        from picamera2.preview import Preview
         camera = Picamera2()
         
         width = config.get('camera.width', 1920)

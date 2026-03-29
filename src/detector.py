@@ -18,26 +18,29 @@ class HailoDetector:
     PERSON_CLASS_ID = 0
     
     def __init__(self, model_path: str = None):
-        self.hailo_model = None
-        self.infer_engine = None
-        self.model_path = model_path or "/usr/share/hailo-models/yolov8n_persons/yolov8n_persons.onnx"
+        self.hef = None
+        self.vdevice = None
+        self.model_path = model_path or "/usr/share/hailo-models/yolov5s_personface_h8l.hef"
         self._initialize()
     
     def _initialize(self):
         try:
-            import hailo
+            from hailo_platform import HEF, VDevice, InputVStreamParams, OutputVStreamParams
             
             logger.info("Initializing Hailo SDK...")
             
             if os.path.exists(self.model_path):
-                self.hailo_model = hailo.HailoModel(self.model_path)
+                self.hef = HEF(self.model_path)
+                self.vdevice = VDevice()
+                self.network_group = self.vdevice.create_network_group(
+                    self.hef.get_network_group_ids()
+                )
+                self.input_vstream_params = InputVStreamParams.from_network_group(self.network_group)
+                self.output_vstream_params = OutputVStreamParams.from_network_group(self.network_group)
                 logger.info(f"Loaded model from: {self.model_path}")
             else:
-                logger.warning(f"Model not found at: {self.model_path}, using fallback")
-                self.model_path = "/usr/share/hailo-models/yolov8n/yolov8n.ckpt"
-                if os.path.exists(self.model_path):
-                    self.hailo_model = hailo.HailoModel(self.model_path)
-                    logger.info(f"Loaded fallback model from: {self.model_path}")
+                logger.error(f"Model not found at: {self.model_path}")
+                raise FileNotFoundError(f"Model not found: {self.model_path}")
                     
         except ImportError:
             logger.error("Hailo SDK not installed. Install with: sudo apt install hailo-all")
@@ -47,22 +50,24 @@ class HailoDetector:
             raise
 
     def detect(self, frame: np.ndarray, confidence_threshold: float = 0.5) -> List[Detection]:
-        if self.hailo_model is None:
+        if self.hef is None:
             logger.error("Model not loaded")
             return []
         
         try:
             import cv2
             
-            input_size = (640, 640)
-            resized = cv2.resize(frame, input_size)
+            input_shape = self.hef.get_input_shape()
+            input_width = input_shape.width
+            input_height = input_shape.height
+            
+            resized = cv2.resize(frame, (input_width, input_height))
             input_data = resized.astype(np.float32) / 255.0
-            input_data = np.transpose(input_data, (2, 0, 1))
-            input_data = np.expand_dims(input_data, axis=0)
             
-            inference_results = self.hailo_model.infer(input_data)
+            infer_model = self.network_group.create_infer_model([input_data])
+            results = infer_model.wait()
             
-            detections = self._parse_results(inference_results, confidence_threshold, frame.shape)
+            detections = self._parse_results(results, confidence_threshold)
             
             return detections
             
@@ -70,7 +75,7 @@ class HailoDetector:
             logger.error(f"Inference failed: {e}")
             return []
 
-    def _parse_results(self, results, confidence_threshold: float, frame_shape) -> List[Detection]:
+    def _parse_results(self, results, confidence_threshold: float) -> List[Detection]:
         detections = []
         
         try:
@@ -98,9 +103,9 @@ class HailoDetector:
         return detections
 
     def close(self):
-        if self.hailo_model:
+        if self.vdevice:
             try:
-                del self.hailo_model
+                del self.vdevice
             except:
                 pass
 

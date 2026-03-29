@@ -1,5 +1,7 @@
-picamera2
-hailort
+# Install via apt first: sudo apt install hailort
+# picamera2
 opencv-python
 numpy
 flask
+flask-login
+Pillow
