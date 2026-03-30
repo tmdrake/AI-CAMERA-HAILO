@@ -53,10 +53,6 @@
                 </div>
                 <div class="card-body">
                     <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" id="alerts_enabled" name="alerts.enabled" {% if config.get('alerts', {}).get('enabled', True) %}checked{% endif %}>
-                        <label class="form-check-label" for="alerts_enabled">Enable Alerts</label>
-                    </div>
-                    <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" id="email_enabled" name="alerts.email.enabled" {% if config.get('alerts', {}).get('email', {}).get('enabled', False) %}checked{% endif %}>
                         <label class="form-check-label" for="email_enabled">Enable Email Alerts</label>
                     </div>

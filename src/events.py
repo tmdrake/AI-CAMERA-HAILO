@@ -50,7 +50,7 @@ class EventHandler:
                 if image_path:
                     event.image_path = image_path
             
-            if config.get('alerts.enabled', True):
+            if config.get('alerts.email.enabled', False):
                 self._send_email_alert(detections, frame)
             
             self.last_alert_time = current_time
