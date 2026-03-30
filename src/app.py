@@ -284,6 +284,14 @@ def serve_image(filename):
     from flask import send_from_directory
     return send_from_directory(config.get('recording.storage_path', 'recordings'), filename)
 
+@app.route('/api/test-email', methods=['POST'])
+@login_required
+def test_email():
+    if event_handler:
+        result = event_handler.send_test_email()
+        return jsonify(result)
+    return jsonify({'success': False, 'error': 'Event handler not available'})
+
 @app.route('/api/status')
 @login_required
 def api_status():

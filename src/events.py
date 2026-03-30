@@ -156,6 +156,54 @@ class EventHandler:
         thread.daemon = True
         thread.start()
     
+    def send_test_email(self) -> dict:
+        email_config = config.get('alerts.email', {})
+        
+        sender = email_config.get('sender_email', '')
+        password = email_config.get('sender_password', '')
+        recipients = email_config.get('recipient_emails', [])
+        
+        if not sender or not password:
+            return {'success': False, 'error': 'Sender email or password not configured'}
+        
+        if not recipients:
+            return {'success': False, 'error': 'No recipient emails configured'}
+        
+        def send_async():
+            try:
+                import smtplib
+                from email.mime.text import MIMEText
+                from email.mime.multipart import MIMEMultipart
+                
+                smtp_host = email_config.get('smtp_host', 'smtp.gmail.com')
+                smtp_port = email_config.get('smtp_port', 587)
+                use_tls = email_config.get('use_tls', True)
+                
+                msg = MIMEMultipart()
+                msg['From'] = sender
+                msg['To'] = ', '.join(recipients)
+                msg['Subject'] = 'AI Camera - Test Email'
+                msg.attach(MIMEText('This is a test email from your AI Camera system.', 'plain'))
+                
+                server = smtplib.SMTP(smtp_host, smtp_port)
+                if use_tls:
+                    server.starttls()
+                server.login(sender, password)
+                server.send_message(msg)
+                server.quit()
+                
+                logger.info("Test email sent successfully")
+                
+            except Exception as e:
+                logger.error(f"Failed to send test email: {e}")
+                return {'success': False, 'error': str(e)}
+        
+        thread = threading.Thread(target=send_async)
+        thread.daemon = True
+        thread.start()
+        
+        return {'success': True, 'message': 'Test email sent'}
+    
     def get_recent_events(self, limit: int = 50) -> List[Event]:
         with self.lock:
             return self.events[-limit:]

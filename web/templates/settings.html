@@ -87,6 +87,11 @@
                         <label for="cooldown_seconds" class="form-label">Cooldown (seconds)</label>
                         <input type="number" class="form-control" id="cooldown_seconds" name="alerts.cooldown_seconds" value="{{ config.get('alerts', {}).get('cooldown_seconds', 60) }}">
                     </div>
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-outline-primary" onclick="testEmail()">
+                            Send Test Email
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -206,5 +211,32 @@ document.querySelectorAll('form input, form select').forEach(input => {
         saveSetting(this.name, value);
     });
 });
+
+function testEmail() {
+    saveStatus.textContent = 'Sending test email...';
+    saveStatus.className = 'alert alert-info';
+    
+    fetch('/api/test-email', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            saveStatus.textContent = 'Test email sent successfully!';
+            saveStatus.className = 'alert alert-success';
+        } else {
+            saveStatus.textContent = 'Error: ' + data.error;
+            saveStatus.className = 'alert alert-danger';
+        }
+        setTimeout(() => {
+            saveStatus.textContent = 'Settings auto-save on change';
+            saveStatus.className = 'alert alert-info';
+        }, 5000);
+    })
+    .catch(error => {
+        saveStatus.textContent = 'Error: ' + error;
+        saveStatus.className = 'alert alert-danger';
+    });
+}
 </script>
 {% endblock %}
