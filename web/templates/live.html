@@ -11,11 +11,85 @@
 
 <div class="row">
     <div class="col-md-12">
-        <div class="card">
+        <div class="card mb-3">
             <div class="card-body">
                 <img src="{{ url_for('video_feed') }}" class="img-fluid" style="width: 100%; max-height: 600px;">
             </div>
         </div>
     </div>
 </div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Detection Status</h6>
+                <p class="mb-0">
+                    <span id="detectorStatus" class="badge bg-secondary">Loading...</span>
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Threshold</h6>
+                <p class="mb-0" id="thresholdDisplay">--%</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Total Events</h6>
+                <p class="mb-0" id="eventCount">0</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Last Detection</h6>
+                <p class="mb-0" id="lastDetection">--</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateDetectionStatus() {
+    fetch('/api/status')
+        .then(response => response.json())
+        .then(data => {
+            const statusEl = document.getElementById('detectorStatus');
+            if (data.detector_type === 'HailoDetector') {
+                statusEl.textContent = 'AI Active';
+                statusEl.className = 'badge bg-success';
+            } else if (data.detector_type === 'MockDetector') {
+                statusEl.textContent = 'Mock Mode';
+                statusEl.className = 'badge bg-warning';
+            } else {
+                statusEl.textContent = 'Inactive';
+                statusEl.className = 'badge bg-danger';
+            }
+            
+            document.getElementById('thresholdDisplay').textContent = data.threshold + '%';
+            document.getElementById('eventCount').textContent = data.detections;
+        });
+    
+    fetch('/api/events')
+        .then(response => response.json())
+        .then(events => {
+            if (events.length > 0) {
+                const lastEvent = new Date(events[0].timestamp);
+                document.getElementById('lastDetection').textContent = lastEvent.toLocaleTimeString();
+            }
+        });
+}
+
+updateDetectionStatus();
+setInterval(updateDetectionStatus, 3000);
+</script>
 {% endblock %}
