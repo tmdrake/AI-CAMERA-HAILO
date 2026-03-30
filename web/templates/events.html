@@ -20,6 +20,21 @@
         </div>
     </div>
 </div>
+
+<!-- Modal for viewing full image -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Event Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" src="" class="img-fluid" alt="Event image">
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -34,16 +49,36 @@ function loadEvents() {
                 return;
             }
             
-            let html = '<table class="table table-striped"><thead><tr><th>Time</th><th>Detections</th><th>Confidence</th></tr></thead><tbody>';
-            events.forEach(event => {
+            let html = '<div class="row">';
+            events.forEach((event, index) => {
                 const time = new Date(event.timestamp).toLocaleString();
                 const detectionCount = event.detections.length;
                 const confidences = event.detections.map(d => (d.confidence * 100).toFixed(1) + '%').join(', ');
-                html += `<tr><td>${time}</td><td>${detectionCount} person(s)</td><td>${confidences}</td></tr>`;
+                
+                const imgHtml = event.image_filename 
+                    ? `<img src="/images/${event.image_filename}" class="img-thumbnail" style="max-height: 100px; cursor: pointer;" onclick="showImage('${event.image_filename}')" alt="Event">`
+                    : '<span class="text-muted">No image</span>';
+                
+                html += `<div class="col-md-4 col-lg-3 mb-3">
+                    <div class="card">
+                        <div class="card-body p-2">
+                            <div class="text-center mb-2">${imgHtml}</div>
+                            <small><strong>${time}</strong></small><br>
+                            <small class="text-muted">${detectionCount} person(s)</small><br>
+                            <small class="text-muted">${confidences}</small>
+                        </div>
+                    </div>
+                </div>`;
             });
-            html += '</tbody></table>';
+            html += '</div>';
             container.innerHTML = html;
         });
+}
+
+function showImage(filename) {
+    document.getElementById('modalImage').src = '/images/' + filename;
+    const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+    modal.show();
 }
 
 loadEvents();

@@ -201,8 +201,15 @@ def api_events():
     return jsonify([{
         'timestamp': e.timestamp.isoformat(),
         'detections': [{'class_name': d.class_name, 'confidence': d.confidence} for d in e.detections],
-        'image_path': e.image_path
+        'image_path': e.image_path,
+        'image_filename': os.path.basename(e.image_path) if e.image_path else None
     } for e in events])
+
+@app.route('/images/<filename>')
+@login_required
+def serve_image(filename):
+    from flask import send_from_directory
+    return send_from_directory(config.get('recording.storage_path', 'recordings'), filename)
 
 @app.route('/api/status')
 @login_required
