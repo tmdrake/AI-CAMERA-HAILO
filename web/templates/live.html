@@ -20,17 +20,35 @@
 </div>
 
 <div class="row">
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="card">
             <div class="card-body">
-                <h6 class="card-title">Detection Status</h6>
+                <h6 class="card-title">Camera</h6>
+                <p class="mb-0">
+                    <span id="cameraStatus" class="badge bg-secondary">Loading...</span>
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Detection</h6>
                 <p class="mb-0">
                     <span id="detectorStatus" class="badge bg-secondary">Loading...</span>
                 </p>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Recording</h6>
+                <p class="mb-0" id="recordingDisplay">--</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
         <div class="card">
             <div class="card-body">
                 <h6 class="card-title">Threshold</h6>
@@ -38,15 +56,15 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="card">
             <div class="card-body">
-                <h6 class="card-title">Total Events</h6>
+                <h6 class="card-title">Events</h6>
                 <p class="mb-0" id="eventCount">0</p>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="card">
             <div class="card-body">
                 <h6 class="card-title">Last Detection</h6>
@@ -63,6 +81,17 @@ function updateDetectionStatus() {
     fetch('/api/status')
         .then(response => response.json())
         .then(data => {
+            // Camera status
+            const camStatusEl = document.getElementById('cameraStatus');
+            if (data.camera_present) {
+                camStatusEl.textContent = 'Connected';
+                camStatusEl.className = 'badge bg-success';
+            } else {
+                camStatusEl.textContent = 'Not Found';
+                camStatusEl.className = 'badge bg-danger';
+            }
+            
+            // Detector status
             const statusEl = document.getElementById('detectorStatus');
             if (data.detector_type === 'HailoDetector') {
                 statusEl.textContent = 'AI Active';
@@ -75,8 +104,13 @@ function updateDetectionStatus() {
                 statusEl.className = 'badge bg-danger';
             }
             
+            // Recording status
+            document.getElementById('recordingDisplay').textContent = data.recording_enabled ? 'On' : 'Off';
+            
             document.getElementById('thresholdDisplay').textContent = data.threshold + '%';
             document.getElementById('eventCount').textContent = data.detections;
+            
+            console.log('Status:', data);
         });
     
     fetch('/api/events')
