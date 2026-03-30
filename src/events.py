@@ -137,7 +137,9 @@ class EventHandler:
                     import numpy as np
                     from PIL import Image
                     if isinstance(frame, np.ndarray):
-                        if frame.shape[2] == 3:
+                        if frame.shape[2] == 4:
+                            frame_rgb = frame[:, :, :3]
+                        elif frame.shape[2] == 3:
                             frame_rgb = frame[:, :, ::-1]
                         else:
                             frame_rgb = frame
