@@ -53,7 +53,10 @@ class EventHandler:
                     event.image_path = image_path
             
             if config.get('alerts.email.enabled', False):
+                logger.info("Email alerts enabled, attempting to send...")
                 self._send_email_alert(detections, frame)
+            else:
+                logger.info("Email alerts disabled, skipping")
             
             self.last_alert_time = current_time
             self.events.append(event)
@@ -181,6 +184,8 @@ class EventHandler:
         if not recipients:
             return {'success': False, 'error': 'No recipient emails configured'}
         
+        result = {'success': False, 'error': None}
+        
         def send_async():
             try:
                 import smtplib
@@ -207,16 +212,21 @@ class EventHandler:
                 server.quit()
                 
                 logger.info("Test email sent successfully")
+                result['success'] = True
                 
             except Exception as e:
                 logger.error(f"Failed to send test email: {e}")
-                return {'success': False, 'error': str(e)}
+                result['error'] = str(e)
         
         thread = threading.Thread(target=send_async)
         thread.daemon = True
         thread.start()
+        thread.join(30)
         
-        return {'success': True, 'message': 'Test email sent'}
+        if result['success']:
+            return {'success': True, 'message': 'Test email sent'}
+        else:
+            return {'success': False, 'error': result['error'] or 'Unknown error'}
     
     def get_recent_events(self, limit: int = 50) -> List[Event]:
         with self.lock:

@@ -103,7 +103,8 @@ def detection_loop():
                 threshold = config.get('detection.confidence_threshold', 50) / 100.0
                 detections = detector.detect(frame, threshold)
                 
-                logger.info(f"Threshold: {threshold}, Detections: {len(detections)}")
+                if detections:
+                    logger.info(f"Threshold: {threshold}, Detections: {len(detections)}")
                 
                 if detections and event_handler:
                     logger.info(f"EVENT TRIGGERED: {len(detections)} detections!")
@@ -112,8 +113,8 @@ def detection_loop():
                     event_handler.handle_detection(detections, frame, datetime.now())
                     detection_count += 1
             
-            # Log every 30 frames (~1 second)
-            if frame_count % 30 == 0:
+            # Log every 300 frames (~10 seconds)
+            if frame_count % 300 == 0:
                 logger.info(f"Processed {frame_count} frames, {detection_count} detections")
             
             time.sleep(0.03)
