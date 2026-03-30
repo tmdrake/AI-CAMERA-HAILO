@@ -149,7 +149,8 @@ class EventHandler:
                         img.save(img_bytes, format='JPEG')
                         img_bytes = img_bytes.getvalue()
                         img_attachment = MIMEImage(img_bytes)
-                        img_attachment.add_header('Content-Disposition', 'attachment', filename='alert.jpg')
+                        filename = datetime.now().strftime("%Y%m%d_%H%M%S") + ".jpg"
+                        img_attachment.add_header('Content-Disposition', 'attachment', filename=filename)
                         msg.attach(img_attachment)
                 
                 smtp_host = email_config.get('smtp_host', 'smtp.gmail.com')
