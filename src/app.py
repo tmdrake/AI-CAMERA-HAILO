@@ -287,7 +287,10 @@ def api_events():
 @login_required
 def serve_image(filename):
     from flask import send_from_directory
-    return send_from_directory(config.get('recording.storage_path', 'recordings'), filename)
+    storage_path = config.get('recording.storage_path', 'recordings')
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    full_path = os.path.join(base_dir, storage_path)
+    return send_from_directory(full_path, filename)
 
 @app.route('/api/test-email', methods=['POST'])
 @login_required
