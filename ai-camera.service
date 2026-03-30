@@ -9,8 +9,8 @@ WorkingDirectory=/home/dennisl/AI-Camera
 ExecStart=/home/dennisl/AI-Camera/start.sh
 Restart=always
 RestartSec=10
-StandardOutput=append:/home/dennisl/AI-Camera/logs/stdout.log
-StandardError=append:/home/dennisl/AI-Camera/logs/stderr.log
+StandardOutput=append:/tmp/ai-camera-stdout.log
+StandardError=append:/tmp/ai-camera-stderr.log
 Environment=PYTHONUNBUFFERED=1
 
 [Install]
