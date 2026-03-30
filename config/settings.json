@@ -17,7 +17,7 @@
             "enabled": false,
             "smtp_host": "192.168.10.29",
             "smtp_port": 2525,
-            "use_tls": true,
+            "use_tls": false,
             "sender_email": "dennisl@orbitelectric.com",
             "sender_password": "",
             "recipient_emails": []

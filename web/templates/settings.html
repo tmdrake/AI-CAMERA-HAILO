@@ -9,7 +9,7 @@
     </div>
 </div>
 
-<form method="POST">
+<form method="POST" onsubmit="return false;">
     <div class="row">
         <div class="col-md-6">
             <div class="card mb-4">
@@ -113,13 +113,13 @@
             </div>
         </div>
     </div>
-    
-    <div class="row mt-3">
-        <div class="col-md-12">
-            <button type="submit" class="btn btn-primary">Save Settings</button>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="alert alert-info" id="saveStatus">
+            Settings auto-save on change
         </div>
     </div>
-</form>
 
 <div class="row mt-4">
     <div class="col-md-12">
@@ -166,9 +166,45 @@
 <script>
 const thresholdSlider = document.getElementById('confidence_threshold');
 const thresholdValue = document.getElementById('thresholdValue');
+const saveStatus = document.getElementById('saveStatus');
 
 thresholdSlider.addEventListener('input', function() {
     thresholdValue.textContent = this.value + '%';
+});
+
+function saveSetting(key, value) {
+    const formData = new FormData();
+    formData.append(key, value);
+    
+    fetch('/settings', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            saveStatus.textContent = 'Saved: ' + key + ' = ' + value;
+            saveStatus.className = 'alert alert-success';
+            setTimeout(() => {
+                saveStatus.textContent = 'Settings auto-save on change';
+                saveStatus.className = 'alert alert-info';
+            }, 2000);
+        }
+    })
+    .catch(error => {
+        saveStatus.textContent = 'Error saving: ' + error;
+        saveStatus.className = 'alert alert-danger';
+    });
+}
+
+// Add event listeners to all form inputs
+document.querySelectorAll('form input, form select').forEach(input => {
+    input.addEventListener('change', function() {
+        let value = this.value;
+        if (this.type === 'checkbox') {
+            value = this.checked ? 'on' : 'off';
+        }
+        saveSetting(this.name, value);
+    });
 });
 </script>
 {% endblock %}
