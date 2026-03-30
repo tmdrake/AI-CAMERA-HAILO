@@ -154,6 +154,8 @@ class EventHandler:
                 smtp_port = email_config.get('smtp_port', 587)
                 use_tls = email_config.get('use_tls', True)
                 
+                logger.info(f"Connecting to SMTP {smtp_host}:{smtp_port}, TLS: {use_tls}")
+                
                 server = smtplib.SMTP(smtp_host, smtp_port)
                 if use_tls:
                     server.starttls()
@@ -162,10 +164,12 @@ class EventHandler:
                 server.send_message(msg)
                 server.quit()
                 
-                logger.info("Email alert sent successfully")
+                logger.info("Email alert sent successfully!")
                 
             except Exception as e:
                 logger.error(f"Failed to send email: {e}")
+                import traceback
+                traceback.print_exc()
         
         thread = threading.Thread(target=send_async)
         thread.daemon = True
