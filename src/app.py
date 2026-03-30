@@ -277,6 +277,7 @@ def events():
 @login_required
 def api_events():
     events = event_handler.get_recent_events(50)
+    events = list(reversed(events))
     return jsonify([{
         'timestamp': e.timestamp.isoformat(),
         'detections': [{'class_name': d.class_name, 'confidence': d.confidence} for d in e.detections],

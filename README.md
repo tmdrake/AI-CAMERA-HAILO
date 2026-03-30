@@ -60,7 +60,27 @@ AI-Camera/
 5. **Configure settings:**
    Edit `config/settings.json` with your preferences (especially email settings).
 
-6. **Install systemd service:**
+6. **Run the application:**
+   ```bash
+   ./start.sh
+   ```
+   Or manually:
+   ```bash
+   source venv/bin/activate
+   python -m src.app
+   ```
+
+7. **Install as systemd service (recommended):**
+   ```bash
+   sudo cp ai-camera.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable ai-camera
+   sudo systemctl start ai-camera
+   ```
+   
+   Check status: `sudo systemctl status ai-camera`
+   
+   View logs: `journalctl -u ai-camera -f`**
    ```bash
    sudo cp ai-camera.service /etc/systemd/system/
    sudo systemctl daemon-reload
