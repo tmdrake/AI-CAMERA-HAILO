@@ -3,6 +3,17 @@ import sys
 import numpy as np
 from typing import List, Tuple, Optional
 import logging
+import threading
+import queue
+import time
+
+try:
+    import gi
+    gi.require_version('Gst', '1.0')
+    from gi.repository import Gst, GObject
+    GST_AVAILABLE = True
+except ImportError:
+    GST_AVAILABLE = False
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,56 +29,116 @@ class HailoDetector:
     PERSON_CLASS_ID = 0
     
     def __init__(self, model_path: str = None):
-        self.hef = None
-        self.vdevice = None
+        self.gst_pipeline = None
         self.model_path = model_path or "/usr/share/hailo-models/yolov5s_personface_h8l.hef"
         self._initialize()
     
     def _initialize(self):
+        global Gst
+        
         try:
-            from hailo_platform import HEF, VDevice, InputVStreamParams, OutputVStreamParams
+            logger.info("Initializing Hailo with GStreamer...")
             
-            logger.info("Initializing Hailo SDK...")
-            
-            if os.path.exists(self.model_path):
-                self.hef = HEF(self.model_path)
-                self.vdevice = VDevice()
-                self.network_group = self.vdevice.create_network_group(
-                    self.hef.get_network_group_ids()
-                )
-                self.input_vstream_params = InputVStreamParams.from_network_group(self.network_group)
-                self.output_vstream_params = OutputVStreamParams.from_network_group(self.network_group)
-                logger.info(f"Loaded model from: {self.model_path}")
-            else:
-                logger.error(f"Model not found at: {self.model_path}")
+            if not os.path.exists(self.model_path):
+                logger.error(f"Model not found: {self.model_path}")
                 raise FileNotFoundError(f"Model not found: {self.model_path}")
+            
+            Gst.init(None)
+            
+            # Create GStreamer pipeline with hailonet
+            pipeline_str = (
+                f"appsrc name=src ! "
+                f"video/x-raw,format=RGB,width=640,height=640,framerate=30/1 ! "
+                f"queue ! "
+                f"hailonet name=hailonet hef-path={self.model_path} nms-score-threshold=0.5 force-writable=true ! "
+                f"queue ! "
+                f"appsink name=sink emit-signals=true"
+            )
+            
+            self.pipeline = Gst.parse_launch(pipeline_str)
+            self.appsrc = self.pipeline.get_by_name("src")
+            self.appsink = self.pipeline.get_by_name("sink")
+            self.hailonet = self.pipeline.get_by_name("hailonet")
+            
+            # Set up appsink to emit new-sample signals
+            self.appsink.connect("new-sample", self._on_new_sample)
+            self.result_queue = queue.Queue()
+            self.detection_results = []
+            self.lock = threading.Lock()
+            
+            # Start pipeline
+            ret = self.pipeline.set_state(Gst.State.PLAYING)
+            if ret == Gst.StateChangeReturn.FAILURE:
+                raise Exception("Failed to set pipeline to PLAYING state")
+            
+            logger.info(f"Loaded model from: {self.model_path}")
                     
-        except ImportError:
-            logger.error("Hailo SDK not installed. Install with: sudo apt install hailo-all")
+        except ImportError as e:
+            logger.error(f"GStreamer not installed: {e}")
             raise
         except Exception as e:
             logger.error(f"Failed to initialize Hailo: {e}")
             raise
 
+    def _on_new_sample(self, sink):
+        sample = sink.emit("pull-sample")
+        if sample:
+            buf = sample.get_buffer()
+            success, map_info = buf.map(Gst.MapFlags.READ)
+            if success:
+                data = np.frombuffer(map_info.data, dtype=np.uint8)
+                # Log the raw data size
+                logger.info(f"Received result buffer: {len(data)} bytes")
+                # Parse NMS output
+                self.result_queue.put(data)
+                buf.unmap(map_info)
+        return Gst.FlowReturn.OK
+
     def detect(self, frame: np.ndarray, confidence_threshold: float = 0.5) -> List[Detection]:
-        if self.hef is None:
-            logger.error("Model not loaded")
+        if self.pipeline is None:
+            logger.error("Pipeline not initialized")
             return []
         
         try:
             import cv2
             
-            input_shape = self.hef.get_input_shape()
-            input_width = input_shape.width
-            input_height = input_shape.height
+            logger.info(f"Processing frame: {frame.shape}")
             
-            resized = cv2.resize(frame, (input_width, input_height))
-            input_data = resized.astype(np.float32) / 255.0
+            # Resize frame to model input size and convert BGR to RGB
+            resized = cv2.resize(frame, (640, 640))
+            resized = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
             
-            infer_model = self.network_group.create_infer_model([input_data])
-            results = infer_model.wait()
+            # Create GStreamer buffer
+            data = resized.tobytes()
+            buf = Gst.Buffer.new_wrapped(data)
             
-            detections = self._parse_results(results, confidence_threshold)
+            # Set presentation time
+            timestamp = int(time.time() * Gst.SECOND)
+            buf.pts = timestamp
+            buf.duration = Gst.SECOND // 30
+            
+            # Push frame to pipeline
+            ret = self.appsrc.emit("push-buffer", buf)
+            
+            if ret != Gst.FlowReturn.OK:
+                logger.warning(f"push-buffer returned: {ret}")
+            
+            # Wait for inference to complete
+            time.sleep(0.1)
+            
+            # Get results
+            detections = []
+            queue_size = self.result_queue.qsize()
+            logger.info(f"Result queue size: {queue_size}")
+            try:
+                while True:
+                    result_data = self.result_queue.get_nowait()
+                    detections = self._parse_results(result_data, confidence_threshold, frame.shape)
+            except queue.Empty:
+                pass
+            
+            with self.lock:
+                self.detection_results = detections
             
             return detections
             
@@ -75,27 +146,48 @@ class HailoDetector:
             logger.error(f"Inference failed: {e}")
             return []
 
-    def _parse_results(self, results, confidence_threshold: float) -> List[Detection]:
+    def _parse_results(self, data: np.ndarray, confidence_threshold: float, frame_shape) -> List[Detection]:
         detections = []
         
         try:
-            if hasattr(results, 'items'):
-                for key, value in results.items():
-                    if isinstance(value, np.ndarray) and len(value) > 0:
-                        for det in value[0]:
-                            if len(det) >= 6:
-                                class_id = int(det[1])
-                                confidence = float(det[2])
-                                
-                                if class_id == self.PERSON_CLASS_ID and confidence >= confidence_threshold:
-                                    x1, y1, x2, y2 = det[3:7]
-                                    bbox = (int(x1), int(y1), int(x2 - x1), int(y2 - y1))
-                                    detections.append(Detection(
-                                        class_id=class_id,
-                                        class_name='person',
-                                        confidence=confidence,
-                                        bbox=bbox
-                                    ))
+            # Parse the NMS output from hailonet
+            # Format for yolov5 with NMS: typically contains flattened detection data
+            if len(data) == 0:
+                return detections
+                
+            logger.info(f"Raw result size: {len(data)}")
+            
+            # The output is likely in NMS format
+            # For yolov5 personface: 2 classes (person, face)
+            # Output format: [num_detections, class_id, score, x1, y1, x2, y2]
+            
+            # Try parsing as float32 instead of uint8
+            data_float = data.view(np.float32)
+            logger.info(f"Float data sample: {data_float[:10]}")
+            
+            # Check for detection count at the beginning
+            num_dets = int(data_float[0])
+            logger.info(f"Number of detections: {num_dets}")
+            
+            for i in range(min(num_dets, 10)):  # Limit to 10 detections
+                offset = 1 + i * 7
+                if offset + 6 < len(data_float):
+                    class_id = int(data_float[offset])
+                    confidence = float(data_float[offset + 1])
+                    x1 = float(data_float[offset + 2])
+                    y1 = float(data_float[offset + 3])
+                    x2 = float(data_float[offset + 4])
+                    y2 = float(data_float[offset + 5])
+                    
+                    if class_id == self.PERSON_CLASS_ID and confidence >= confidence_threshold:
+                        bbox = (int(x1), int(y1), int(x2 - x1), int(y2 - y1))
+                        detections.append(Detection(
+                            class_id=class_id,
+                            class_name='person',
+                            confidence=confidence,
+                            bbox=bbox
+                        ))
+                        logger.info(f"Detection: class={class_id}, conf={confidence:.2f}, bbox=({x1},{y1},{x2},{y2})")
             
         except Exception as e:
             logger.error(f"Failed to parse results: {e}")
@@ -103,9 +195,9 @@ class HailoDetector:
         return detections
 
     def close(self):
-        if self.vdevice:
+        if self.pipeline:
             try:
-                del self.vdevice
+                self.pipeline.set_state(Gst.State.NULL)
             except:
                 pass
 
