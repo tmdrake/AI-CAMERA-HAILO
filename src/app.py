@@ -306,12 +306,20 @@ def api_status():
         detector_type = "HailoDetector"
     else:
         detector_type = "MockDetector"
+    
+    last_event_time = None
+    if event_handler and event_handler.events:
+        last_event_time = event_handler.events[-1].timestamp.isoformat()
+    
     return jsonify({
         'running': running,
         'detector_type': detector_type,
         'detections': len(event_handler.events) if event_handler else 0,
+        'last_event_time': last_event_time,
         'cooldown': config.get('alerts.cooldown_seconds', 60),
         'threshold': config.get('detection.confidence_threshold', 50),
+        'recording_enabled': config.get('recording.enabled', True),
+        'camera_present': camera is not None,
         'config': config.get_all()
     })
 
