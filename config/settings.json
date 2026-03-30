@@ -1,6 +1,6 @@
 {
     "detection": {
-        "confidence_threshold": 0.1,
+        "confidence_threshold": 10,
         "person_class_only": true,
         "model_path": "/usr/share/hailo-models/yolov5s_personface_h8l.hef"
     },

@@ -96,7 +96,7 @@ def detection_loop():
             frame_count += 1
             
             if detector:
-                threshold = config.get('detection.confidence_threshold', 0.5)
+                threshold = config.get('detection.confidence_threshold', 50) / 100.0
                 detections = detector.detect(frame, threshold)
                 
                 logger.info(f"Threshold: {threshold}, Detections: {len(detections)}")
