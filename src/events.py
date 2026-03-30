@@ -143,7 +143,8 @@ class EventHandler:
                 server = smtplib.SMTP(smtp_host, smtp_port)
                 if use_tls:
                     server.starttls()
-                server.login(sender, password)
+                if password:
+                    server.login(sender, password)
                 server.send_message(msg)
                 server.quit()
                 
@@ -163,8 +164,8 @@ class EventHandler:
         password = email_config.get('sender_password', '')
         recipients = email_config.get('recipient_emails', [])
         
-        if not sender or not password:
-            return {'success': False, 'error': 'Sender email or password not configured'}
+        if not sender:
+            return {'success': False, 'error': 'Sender email not configured'}
         
         if not recipients:
             return {'success': False, 'error': 'No recipient emails configured'}
@@ -188,7 +189,8 @@ class EventHandler:
                 server = smtplib.SMTP(smtp_host, smtp_port)
                 if use_tls:
                     server.starttls()
-                server.login(sender, password)
+                if password:
+                    server.login(sender, password)
                 server.send_message(msg)
                 server.quit()
                 

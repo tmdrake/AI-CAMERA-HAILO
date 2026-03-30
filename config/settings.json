@@ -20,7 +20,9 @@
             "use_tls": false,
             "sender_email": "dennisl@orbitelectric.com",
             "sender_password": "",
-            "recipient_emails": []
+            "recipient_emails": [
+                "dennisl@orbitelectric.com"
+            ]
         },
         "cooldown_seconds": 60
     },
