@@ -298,9 +298,18 @@ def test_email():
 @app.route('/api/status')
 @login_required
 def api_status():
+    if detector is None:
+        detector_type = "None"
+    elif hasattr(detector, '_initialize'):
+        detector_type = "HailoDetector"
+    else:
+        detector_type = "MockDetector"
     return jsonify({
         'running': running,
+        'detector_type': detector_type,
         'detections': len(event_handler.events) if event_handler else 0,
+        'cooldown': config.get('alerts.cooldown_seconds', 60),
+        'threshold': config.get('detection.confidence_threshold', 50),
         'config': config.get_all()
     })
 
