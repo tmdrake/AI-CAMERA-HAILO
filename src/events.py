@@ -81,6 +81,8 @@ class EventHandler:
             logger.info(f"Frame type: {type(frame)}, shape: {frame.shape if hasattr(frame, 'shape') else 'N/A'}")
             
             if isinstance(frame, np.ndarray):
+                if frame.shape[2] == 4:
+                    frame = frame[:, :, :3]
                 if frame.shape[2] == 3:
                     frame = frame[:, :, ::-1]
                 image = Image.fromarray(frame)
