@@ -80,18 +80,22 @@ AI-Camera/
    
    Check status: `sudo systemctl status ai-camera`
    
-   View logs: `journalctl -u ai-camera -f`**
-   ```bash
-   sudo cp ai-camera.service /etc/systemd/system/
-   sudo systemctl daemon-reload
-   sudo systemctl enable ai-camera
-   sudo systemctl start ai-camera
-   ```
+   View logs: `journalctl -u ai-camera -f`
 
 ## Access
 
 - Web UI: `http://<raspberry-pi-ip>:5000`
 - Default login: `admin` / `admin123` (change in settings)
+
+## Logs
+
+- Service logs: `journalctl -u ai-camera -f`
+- Application logs: `/tmp/ai-camera-stdout.log` and `/tmp/ai-camera-stderr.log`
+
+## Notes
+
+- Events list resets on service restart (recorded images persist)
+- Logs stored in /tmp (RAM) to reduce SD card wear
 
 ## Features
 
