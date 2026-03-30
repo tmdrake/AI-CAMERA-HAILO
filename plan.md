@@ -67,8 +67,8 @@ This machine has a **Hailo-8 AI Accelerator** installed via PCIe.
 
 ### Phase 5: Polish & Deployment
 
--   [ ] System service (systemd)
--   [ ] Logging
+-   [x] System service (systemd)
+-   [x] Logging
 -   [ ] Performance optimization
 -   [ ] Add GPIO button for factory reset (hold for 5 seconds to reset)
 
