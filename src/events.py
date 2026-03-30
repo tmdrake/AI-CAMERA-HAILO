@@ -110,8 +110,8 @@ class EventHandler:
         password = email_config.get('sender_password', '')
         recipients = email_config.get('recipient_emails', [])
         
-        if not sender or not password or not recipients:
-            logger.warning("Email not configured")
+        if not sender or not recipients:
+            logger.warning("Email not configured: sender or recipients missing")
             return
         
         def send_async():
