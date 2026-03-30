@@ -43,7 +43,7 @@ This machine has a **Hailo-8 AI Accelerator** installed via PCIe.
 -   [x] Test Hailo SDK installation - Working!
 -   [x] Integrate Hailo Python API for inference
 -   [x] Person detection model: yolov5s_personface_h8l.hef (uses Hailo8L model on Hailo8)
--   [ ] Test with camera input
+-   [x] Test with camera input
 
 ### Phase 2: AI Detection Pipeline
 
@@ -54,9 +54,9 @@ This machine has a **Hailo-8 AI Accelerator** installed via PCIe.
 
 ### Phase 3: Event Handling
 
--   [ ] Trigger recording on detection
--   [ ] Implement email alerts with attachments
--   [ ] Add cooldown/debounce logic
+-   [x] Trigger recording on detection
+-   [x] Implement email alerts with attachments
+-   [x] Add cooldown/debounce logic
 
 ### Phase 4: Web Interface
 
@@ -69,8 +69,6 @@ This machine has a **Hailo-8 AI Accelerator** installed via PCIe.
 
 -   [x] System service (systemd)
 -   [x] Logging
--   [ ] Performance optimization
--   [ ] Add GPIO button for factory reset (hold for 5 seconds to reset)
 
 ## Success Criteria
 
