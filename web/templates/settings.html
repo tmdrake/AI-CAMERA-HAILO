@@ -65,6 +65,16 @@
                         <input type="text" class="form-control" id="smtp_host" name="alerts.email.smtp_host" value="{{ config.get('alerts', {}).get('email', {}).get('smtp_host', 'smtp.gmail.com') }}">
                     </div>
                     <div class="mb-3">
+                        <label for="smtp_port" class="form-label">SMTP Port</label>
+                        <input type="number" class="form-control" id="smtp_port" name="alerts.email.smtp_port" value="{{ config.get('alerts', {}).get('email', {}).get('smtp_port', 587) }}">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="use_tls" name="alerts.email.use_tls" {% if config.get('alerts', {}).get('email', {}).get('use_tls', True) %}checked{% endif %}>
+                            <label class="form-check-label" for="use_tls">Use TLS</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
                         <label for="sender_email" class="form-label">Sender Email</label>
                         <input type="email" class="form-control" id="sender_email" name="alerts.email.sender_email" value="{{ config.get('alerts', {}).get('email', {}).get('sender_email', '') }}">
                     </div>

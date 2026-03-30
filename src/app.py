@@ -174,10 +174,17 @@ def settings():
                 config.set('detection.confidence_threshold', float(value))
             elif key == 'alerts.email.enabled':
                 config.set('alerts.email.enabled', request.form.get('alerts.email.enabled') == 'on')
+            elif key == 'alerts.email.use_tls':
+                config.set('alerts.email.use_tls', request.form.get('alerts.email.use_tls') == 'on')
             elif key == 'alerts.enabled':
                 config.set('alerts.enabled', request.form.get('alerts.enabled') == 'on')
             elif key == 'recording.enabled':
                 config.set('recording.enabled', request.form.get('recording.enabled') == 'on')
+            elif key == 'alerts.email.recipient_emails':
+                emails = [e.strip() for e in value.split(',') if e.strip()]
+                config.set('alerts.email.recipient_emails', emails)
+            elif key == 'alerts.email.smtp_port':
+                config.set('alerts.email.smtp_port', int(value))
             elif key.startswith('alerts.email.'):
                 config.set(key, value)
             elif key.startswith('web_server.'):

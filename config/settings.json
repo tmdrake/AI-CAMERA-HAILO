@@ -1,6 +1,6 @@
 {
     "detection": {
-        "confidence_threshold": 25.0,
+        "confidence_threshold": 10.0,
         "person_class_only": true,
         "model_path": "/usr/share/hailo-models/yolov5s_personface_h8l.hef"
     },
@@ -15,10 +15,10 @@
         "enabled": true,
         "email": {
             "enabled": false,
-            "smtp_host": "smtp.gmail.com",
+            "smtp_host": "192.168.10.29",
             "smtp_port": 587,
             "use_tls": true,
-            "sender_email": "",
+            "sender_email": "dennisl@orbitelectric.com",
             "sender_password": "",
             "recipient_emails": ""
         },
