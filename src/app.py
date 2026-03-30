@@ -105,7 +105,7 @@ def detection_loop():
                 
                 logger.info(f"Threshold: {threshold}, Detections: {len(detections)}")
                 
-                if detections:
+                if detections and event_handler:
                     logger.info(f"EVENT TRIGGERED: {len(detections)} detections!")
                     for d in detections:
                         logger.info(f"  {d.class_name}: conf={d.confidence:.2f} at {d.bbox}")
@@ -334,6 +334,11 @@ def start():
     
     model_path = config.get('detection.model_path')
     detector = create_detector(model_path)
+    
+    if detector and hasattr(detector, '_initialize'):
+        logger.info("Using HailoDetector")
+    else:
+        logger.warning("Using MockDetector - no AI detection will occur")
     
     event_handler = EventHandler()
     
