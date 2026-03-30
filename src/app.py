@@ -188,6 +188,72 @@ def settings():
     
     return render_template('settings.html', config=config.get_all())
 
+@app.route('/settings/reset')
+@login_required
+def factory_reset():
+    global running
+    
+    logger.info("Factory reset requested")
+    
+    DEFAULT_CONFIG = {
+        "detection": {
+            "confidence_threshold": 50,
+            "person_class_only": True,
+            "model_path": "/usr/share/hailo-models/yolov5s_personface_h8l.hef"
+        },
+        "recording": {
+            "enabled": True,
+            "storage_path": "recordings",
+            "retention_days": 90,
+            "record_duration_seconds": 30,
+            "pre_buffer_seconds": 5
+        },
+        "alerts": {
+            "enabled": True,
+            "email": {
+                "enabled": False,
+                "smtp_host": "smtp.gmail.com",
+                "smtp_port": 587,
+                "use_tls": True,
+                "sender_email": "",
+                "sender_password": "",
+                "recipient_emails": []
+            },
+            "cooldown_seconds": 60
+        },
+        "web_server": {
+            "host": "0.0.0.0",
+            "port": 5000,
+            "username": "admin",
+            "password": "admin123"
+        },
+        "camera": {
+            "width": 640,
+            "height": 480,
+            "framerate": 30,
+            "rotation": 0
+        },
+        "schedule": {
+            "enabled": False,
+            "active_hours": [
+                {"start": "00:00", "end": "23:59"}
+            ]
+        }
+    }
+    
+    for section, values in DEFAULT_CONFIG.items():
+        for key, value in values.items():
+            if isinstance(value, dict):
+                for subkey, subvalue in value.items():
+                    config.set(f"{section}.{key}.{subkey}", subvalue)
+            else:
+                config.set(f"{section}.{key}", value)
+    
+    config.save()
+    
+    logger.info("Factory reset complete - restarting")
+    return redirect(url_for('settings'))
+
 @app.route('/events')
 @login_required
 def events():
