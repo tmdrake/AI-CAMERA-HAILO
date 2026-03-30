@@ -17,10 +17,10 @@ Build a lightweight AI-powered security camera using:
 
 ```
 RPi Camera → Hailo Inference → Detection Logic → Actions
-                                     ↓
-                               Web Server (Flask/FastAPI)
-                                     ↓
-                             Live Stream + Settings UI
+                                      ↓
+                                Web Server (Flask/FastAPI)
+                                      ↓
+                              Live Stream + Settings UI
 ```
 
 Components:
@@ -31,26 +31,26 @@ Components:
 -   **Frontend**: Simple web interface (HTML/JS + Bootstrap or minimal framework)
 -   **Config**: JSON or YAML for settings (threshold, email, schedule, etc.)
 
+## Hardware
+
+This machine has a **Hailo-8 AI Accelerator** installed via PCIe.
+
 ## Implementation Phases
 
-### Phase 1: Project Setup & Hardware Testing (Remote SSH)
-
-**Note**: Developing code on Windows host in `AI-CAMERA/` then deploy to `~/AI-Camera` on ai-rpi via SSH/scp.
+### Phase 1: Project Setup & Hardware Testing
 
 -   [x] Create directory structure
--   [ ] SSH to ai-rpi (dennisl), work in \~/AI-Camera
--   [ ] Test CSI camera module (libcamera-hello + capture test)
--   [ ] Verify Hailo SDK/drivers per RPi AI docs: confirm `dtparam=pciex1_gen=3`, install `hailo-all`
--   [ ] Setup virtual environment + requirements.txt 
--   [ ] Add configuration management (JSON for threshold/email/schedule)
--   [ ] Basic camera test script
+-   [x] Test Hailo SDK installation - Working!
+-   [x] Integrate Hailo Python API for inference
+-   [x] Person detection model: yolov5s_personface_h8l.hef (uses Hailo8L model on Hailo8)
+-   [ ] Test with camera input
 
 ### Phase 2: AI Detection Pipeline
 
--   [ ] Integrate Hailo SDK
--   [ ] Load optimized person detection model
--   [ ] Real-time inference loop with picamera2
--   [ ] Filter detections to humans only
+-   [x] Integrate Hailo SDK (using Python API with VDevice)
+-   [x] Load optimized person detection model
+-   [x] Real-time inference loop working
+-   [x] Filter detections to humans only
 
 ### Phase 3: Event Handling
 
@@ -60,10 +60,10 @@ Components:
 
 ### Phase 4: Web Interface
 
--   [ ] Live video streaming (MJPEG or WebRTC)
--   [ ] Settings page (sensitivity, email config, enable/disable)
--   [ ] Dashboard showing recent events
--   [ ] Settings persistence
+-   [x] Live video streaming (MJPEG)
+-   [x] Settings page (sensitivity, email config, enable/disable)
+-   [x] Dashboard showing recent events
+-   [x] Settings persistence
 
 ### Phase 5: Polish & Deployment
 
@@ -79,12 +79,32 @@ Components:
 -   Configurable via web without code changes
 -   Runs efficiently on Raspberry Pi + Hailo
 
+## Hailo Python API Usage
 
+```python
+from hailo_platform import HEF, VDevice
+import numpy as np
 
-\*\*  
-These are needed for HAILO drivers:
-
-sudo apt install dkms  
-sudo apt install hailo-all
-
-More information: Hailo Drivers Installation.txt
+# Load model
+hef = HEF('/usr/share/hailo-models/yolov5s_personface_h8l.hef')
+with VDevice() as target:
+    infer_model = target.create_infer_model(hef_path, 'yolov5s_personface')
+    with infer_model.configure() as configured_model:
+        configured_model.activate()
+        
+        input_name = infer_model.input_names[0]
+        output_name = infer_model.output_names[0]
+        
+        input_buffer = np.zeros((640, 640, 3), dtype=np.uint8)
+        output_buffer = np.zeros((802,), dtype=np.float32)
+        
+        bindings = configured_model.create_bindings()
+        bindings.input(input_name).set_buffer(input_buffer)
+        bindings.output(output_name).set_buffer(output_buffer)
+        
+        # Run inference
+        configured_model.run([bindings], 1000)
+        
+        # Parse output: [num_dets, class_id, conf, x1, y1, x2, y2, ...]
+        num_dets = int(output_buffer[0])
+```

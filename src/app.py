@@ -12,6 +12,9 @@ from typing import Optional
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 
+# Add system packages for hailo_platform
+sys.path.insert(0, '/usr/lib/python3/dist-packages')
+
 import numpy as np
 from flask import Flask, render_template, Response, request, jsonify, redirect, url_for, session
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user

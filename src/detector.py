@@ -3,17 +3,7 @@ import sys
 import numpy as np
 from typing import List, Tuple, Optional
 import logging
-import threading
-import queue
-import time
-
-try:
-    import gi
-    gi.require_version('Gst', '1.0')
-    from gi.repository import Gst, GObject
-    GST_AVAILABLE = True
-except ImportError:
-    GST_AVAILABLE = False
+import cv2
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,119 +16,84 @@ class Detection:
         self.bbox = bbox
 
 class HailoDetector:
-    PERSON_CLASS_ID = 0
+    # Model classes: 1=person, 2=face (0 is unlabeled)
+    PERSON_CLASS_ID = 1
     
     def __init__(self, model_path: str = None):
-        self.gst_pipeline = None
         self.model_path = model_path or "/usr/share/hailo-models/yolov5s_personface_h8l.hef"
+        self.vdevice = None
+        self.infer_model = None
+        self.configured_model = None
+        self.bindings = None
+        self.input_name = None
+        self.output_name = None
         self._initialize()
     
     def _initialize(self):
-        global Gst
-        
         try:
-            logger.info("Initializing Hailo with GStreamer...")
+            from hailo_platform import HEF, VDevice
+            
+            logger.info(f"Loading model from: {self.model_path}")
             
             if not os.path.exists(self.model_path):
                 logger.error(f"Model not found: {self.model_path}")
                 raise FileNotFoundError(f"Model not found: {self.model_path}")
             
-            Gst.init(None)
+            self.vdevice = VDevice()
+            self.infer_model = self.vdevice.create_infer_model(self.model_path, 'yolov5s_personface')
+            self.configured_model = self.infer_model.configure()
             
-            # Create GStreamer pipeline with hailonet
-            pipeline_str = (
-                f"appsrc name=src ! "
-                f"video/x-raw,format=RGB,width=640,height=640,framerate=30/1 ! "
-                f"queue ! "
-                f"hailonet name=hailonet hef-path={self.model_path} nms-score-threshold=0.5 force-writable=true ! "
-                f"queue ! "
-                f"appsink name=sink emit-signals=true"
-            )
+            # Activate the model
+            self.configured_model.activate()
             
-            self.pipeline = Gst.parse_launch(pipeline_str)
-            self.appsrc = self.pipeline.get_by_name("src")
-            self.appsink = self.pipeline.get_by_name("sink")
-            self.hailonet = self.pipeline.get_by_name("hailonet")
+            self.input_name = self.infer_model.input_names[0]
+            self.output_name = self.infer_model.output_names[0]
             
-            # Set up appsink to emit new-sample signals
-            self.appsink.connect("new-sample", self._on_new_sample)
-            self.result_queue = queue.Queue()
-            self.detection_results = []
-            self.lock = threading.Lock()
+            # Get input/output shapes
+            self.input_shape = self.infer_model.inputs[0].shape
+            self.output_shape = self.infer_model.outputs[0].shape
             
-            # Start pipeline
-            ret = self.pipeline.set_state(Gst.State.PLAYING)
-            if ret == Gst.StateChangeReturn.FAILURE:
-                raise Exception("Failed to set pipeline to PLAYING state")
+            # Pre-allocate buffers
+            self.input_buffer = np.zeros(self.input_shape, dtype=np.uint8)
+            self.output_buffer = np.zeros(self.output_shape, dtype=np.float32)
             
-            logger.info(f"Loaded model from: {self.model_path}")
+            logger.info(f"Loaded model successfully")
+            logger.info(f"Input: {self.input_name} shape={self.input_shape}, Output: {self.output_name} shape={self.output_shape}")
                     
         except ImportError as e:
-            logger.error(f"GStreamer not installed: {e}")
+            logger.error(f"Hailo platform not installed: {e}")
             raise
         except Exception as e:
             logger.error(f"Failed to initialize Hailo: {e}")
             raise
 
-    def _on_new_sample(self, sink):
-        sample = sink.emit("pull-sample")
-        if sample:
-            buf = sample.get_buffer()
-            success, map_info = buf.map(Gst.MapFlags.READ)
-            if success:
-                data = np.frombuffer(map_info.data, dtype=np.uint8)
-                # Log the raw data size
-                logger.info(f"Received result buffer: {len(data)} bytes")
-                # Parse NMS output
-                self.result_queue.put(data)
-                buf.unmap(map_info)
-        return Gst.FlowReturn.OK
-
     def detect(self, frame: np.ndarray, confidence_threshold: float = 0.5) -> List[Detection]:
-        if self.pipeline is None:
-            logger.error("Pipeline not initialized")
+        if self.configured_model is None:
+            logger.error("Model not initialized")
             return []
         
         try:
-            import cv2
+            # Get original frame dimensions
+            orig_height, orig_width = frame.shape[:2]
             
-            logger.info(f"Processing frame: {frame.shape}")
-            
-            # Resize frame to model input size and convert BGR to RGB
-            resized = cv2.resize(frame, (640, 640))
+            # Resize frame to model input size (640x640)
+            resized = cv2.resize(frame, (self.input_shape[1], self.input_shape[0]))
+            # Convert BGR to RGB (uint8)
             resized = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
             
-            # Create GStreamer buffer
-            data = resized.tobytes()
-            buf = Gst.Buffer.new_wrapped(data)
+            # Copy to pre-allocated buffer
+            np.copyto(self.input_buffer, resized)
             
-            # Set presentation time
-            timestamp = int(time.time() * Gst.SECOND)
-            buf.pts = timestamp
-            buf.duration = Gst.SECOND // 30
+            # Create fresh bindings for each inference
+            bindings = self.configured_model.create_bindings()
+            bindings.input(self.input_name).set_buffer(self.input_buffer)
+            bindings.output(self.output_name).set_buffer(self.output_buffer)
             
-            # Push frame to pipeline
-            ret = self.appsrc.emit("push-buffer", buf)
+            # Run inference
+            self.configured_model.run([bindings], 1000)
             
-            if ret != Gst.FlowReturn.OK:
-                logger.warning(f"push-buffer returned: {ret}")
-            
-            # Wait for inference to complete
-            time.sleep(0.1)
-            
-            # Get results
-            detections = []
-            queue_size = self.result_queue.qsize()
-            logger.info(f"Result queue size: {queue_size}")
-            try:
-                while True:
-                    result_data = self.result_queue.get_nowait()
-                    detections = self._parse_results(result_data, confidence_threshold, frame.shape)
-            except queue.Empty:
-                pass
-            
-            with self.lock:
-                self.detection_results = detections
+            # Parse detections - pass the resized shape since that's what model saw
+            detections = self._parse_nms_output(self.output_buffer, confidence_threshold, (orig_height, orig_width), (self.input_shape[0], self.input_shape[1]))
             
             return detections
             
@@ -146,60 +101,75 @@ class HailoDetector:
             logger.error(f"Inference failed: {e}")
             return []
 
-    def _parse_results(self, data: np.ndarray, confidence_threshold: float, frame_shape) -> List[Detection]:
+    def _parse_nms_output(self, output: np.ndarray, confidence_threshold: float, orig_shape, model_shape) -> List[Detection]:
         detections = []
         
         try:
-            # Parse the NMS output from hailonet
-            # Format for yolov5 with NMS: typically contains flattened detection data
-            if len(data) == 0:
+            # NMS output format: [num_detections, class_id, confidence, cx, cy, width, height]
+            # All coordinates normalized [0, 1] for the model input (640x640)
+            # cx, cy are center coordinates, width/height are box dimensions
+            if output.size == 0:
                 return detections
+            
+            num_dets = int(output[0])
+            orig_height, orig_width = orig_shape[:2]
+            model_height, model_width = model_shape[:2]
+            
+            for i in range(min(num_dets, 50)):
+                offset = 1 + i * 6  # 6 values per detection
+                if offset + 5 >= output.size:
+                    break
                 
-            logger.info(f"Raw result size: {len(data)}")
-            
-            # The output is likely in NMS format
-            # For yolov5 personface: 2 classes (person, face)
-            # Output format: [num_detections, class_id, score, x1, y1, x2, y2]
-            
-            # Try parsing as float32 instead of uint8
-            data_float = data.view(np.float32)
-            logger.info(f"Float data sample: {data_float[:10]}")
-            
-            # Check for detection count at the beginning
-            num_dets = int(data_float[0])
-            logger.info(f"Number of detections: {num_dets}")
-            
-            for i in range(min(num_dets, 10)):  # Limit to 10 detections
-                offset = 1 + i * 7
-                if offset + 6 < len(data_float):
-                    class_id = int(data_float[offset])
-                    confidence = float(data_float[offset + 1])
-                    x1 = float(data_float[offset + 2])
-                    y1 = float(data_float[offset + 3])
-                    x2 = float(data_float[offset + 4])
-                    y2 = float(data_float[offset + 5])
+                # Format: [class_id, confidence, cx, cy, width, height]
+                class_id = int(round(output[offset]))
+                confidence = float(output[offset + 1])
+                cx = float(output[offset + 2])
+                cy = float(output[offset + 3])
+                width = float(output[offset + 4])
+                height = float(output[offset + 5])
+                
+                # Only detect persons (class_id = 1 for this model)
+                if class_id == self.PERSON_CLASS_ID and confidence >= confidence_threshold:
+                    # Clamp and ensure minimum size
+                    cx = max(0.0, min(cx, 1.0))
+                    cy = max(0.0, min(cy, 1.0))
+                    width = max(0.01, min(width, 1.0))
+                    height = max(0.01, min(height, 1.0))
                     
-                    if class_id == self.PERSON_CLASS_ID and confidence >= confidence_threshold:
-                        bbox = (int(x1), int(y1), int(x2 - x1), int(y2 - y1))
-                        detections.append(Detection(
-                            class_id=class_id,
-                            class_name='person',
-                            confidence=confidence,
-                            bbox=bbox
-                        ))
-                        logger.info(f"Detection: class={class_id}, conf={confidence:.2f}, bbox=({x1},{y1},{x2},{y2})")
+                    # Convert from center/width to top-left coordinates
+                    x1 = int((cx - width/2) * orig_width)
+                    y1 = int((cy - height/2) * orig_height)
+                    w = int(width * orig_width)
+                    h = int(height * orig_height)
+                    
+                    # Ensure valid bounding box
+                    x1 = max(0, min(x1, orig_width - 1))
+                    y1 = max(0, min(y1, orig_height - 1))
+                    w = max(10, min(w, orig_width - x1))
+                    h = max(10, min(h, orig_height - y1))
+                    
+                    bbox = (x1, y1, w, h)
+                    detections.append(Detection(
+                        class_id=class_id,
+                        class_name='person',
+                        confidence=confidence,
+                        bbox=bbox
+                    ))
+                    logger.debug(f"Detection: person, conf={confidence:.2f}, bbox={bbox}")
             
         except Exception as e:
-            logger.error(f"Failed to parse results: {e}")
+            logger.error(f"Failed to parse NMS output: {e}")
         
         return detections
 
     def close(self):
-        if self.pipeline:
-            try:
-                self.pipeline.set_state(Gst.State.NULL)
-            except:
-                pass
+        try:
+            if self.configured_model:
+                self.configured_model.shutdown()
+            if self.vdevice:
+                self.vdevice.release()
+        except Exception as e:
+            logger.error(f"Error closing detector: {e}")
 
 
 class MockDetector:
