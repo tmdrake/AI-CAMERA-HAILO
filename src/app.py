@@ -79,6 +79,9 @@ def init_camera():
 def detection_loop():
     global latest_frame, running
     
+    frame_count = 0
+    detection_count = 0
+    
     while running:
         try:
             if camera is None:
@@ -90,12 +93,28 @@ def detection_loop():
             with latest_frame_lock:
                 latest_frame = frame.copy()
             
+            frame_count += 1
+            
             if detector:
                 threshold = config.get('detection.confidence_threshold', 0.5)
                 detections = detector.detect(frame, threshold)
                 
+                logger.info(f"Threshold: {threshold}, Detections: {len(detections)}")
+                
                 if detections:
+                    logger.info(f"EVENT TRIGGERED: {len(detections)} detections!")
+                    for d in detections:
+                        logger.info(f"  {d.class_name}: conf={d.confidence:.2f} at {d.bbox}")
                     event_handler.handle_detection(detections, frame, datetime.now())
+                    detection_count += 1
+                    logger.info(f"Frame {frame_count}: Detected {len(detections)} person(s)")
+                    for d in detections:
+                        logger.info(f"  - {d.class_name}: conf={d.confidence:.2f} bbox={d.bbox}")
+                    event_handler.handle_detection(detections, frame, datetime.now())
+            
+            # Log every 30 frames (~1 second)
+            if frame_count % 30 == 0:
+                logger.info(f"Processed {frame_count} frames, {detection_count} detections")
             
             time.sleep(0.03)
             

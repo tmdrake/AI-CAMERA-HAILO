@@ -104,6 +104,10 @@ class HailoDetector:
     def _parse_nms_output(self, output: np.ndarray, confidence_threshold: float, orig_shape, model_shape) -> List[Detection]:
         detections = []
         
+        # Minimum bounding box size to filter noise
+        min_width = 10
+        min_height = 10
+        
         try:
             # NMS output format: [num_detections, class_id, confidence, cx, cy, width, height]
             # All coordinates normalized [0, 1] for the model input (640x640)
@@ -128,8 +132,8 @@ class HailoDetector:
                 width = float(output[offset + 4])
                 height = float(output[offset + 5])
                 
-                # Only detect persons (class_id = 1 for this model)
-                if class_id == self.PERSON_CLASS_ID and confidence >= confidence_threshold:
+                # Accept class_id 0 or 1 (unlabeled or person)
+                if class_id in [0, 1] and confidence >= confidence_threshold:
                     # Clamp and ensure minimum size
                     cx = max(0.0, min(cx, 1.0))
                     cy = max(0.0, min(cy, 1.0))
@@ -147,6 +151,11 @@ class HailoDetector:
                     y1 = max(0, min(y1, orig_height - 1))
                     w = max(10, min(w, orig_width - x1))
                     h = max(10, min(h, orig_height - y1))
+                    
+                    # Filter out tiny bounding boxes (likely noise)
+                    if w < min_width or h < min_height:
+                        logger.debug(f"Filtered out small bbox: {w}x{h}")
+                        continue
                     
                     bbox = (x1, y1, w, h)
                     detections.append(Detection(

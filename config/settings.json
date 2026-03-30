@@ -1,6 +1,6 @@
 {
     "detection": {
-        "confidence_threshold": 0.5,
+        "confidence_threshold": 0.1,
         "person_class_only": true,
         "model_path": "/usr/share/hailo-models/yolov5s_personface_h8l.hef"
     },
@@ -20,26 +20,29 @@
             "use_tls": true,
             "sender_email": "",
             "sender_password": "",
-            "recipient_emails": []
+            "recipient_emails": ""
         },
         "cooldown_seconds": 60
     },
     "web_server": {
         "host": "0.0.0.0",
-        "port": 5000,
+        "port": "5000",
         "username": "admin",
         "password": "admin123"
     },
     "camera": {
-        "width": 1920,
-        "height": 1080,
+        "width": 640,
+        "height": 480,
         "framerate": 30,
         "rotation": 0
     },
     "schedule": {
         "enabled": false,
         "active_hours": [
-            {"start": "00:00", "end": "23:59"}
+            {
+                "start": "00:00",
+                "end": "23:59"
+            }
         ]
     }
 }
