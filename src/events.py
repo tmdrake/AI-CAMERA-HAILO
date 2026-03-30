@@ -124,7 +124,7 @@ class EventHandler:
                 
                 body = f"Motion detected at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
                 body += f"Detected {len(detections)} person(s)\n\n"
-                body += "Confidence: " + ", ".join([f"{d.confidence:.2f}" for d in detections])
+                body += "Confidence: " + ", ".join([f"{d.confidence*100:.0f}%" for d in detections])
                 
                 msg.attach(MIMEText(body, 'plain'))
                 
