@@ -103,10 +103,11 @@ class EventHandler:
         
         def send_async():
             try:
+                device_name = config.get('device.name', 'AI Camera')
                 msg = MIMEMultipart()
                 msg['From'] = sender
                 msg['To'] = ', '.join(recipients)
-                msg['Subject'] = f"AI Camera Alert - {len(detections)} Person(s) Detected"
+                msg['Subject'] = f"{device_name} Alert - {len(detections)} Person(s) Detected"
                 
                 body = f"Motion detected at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
                 body += f"Detected {len(detections)} person(s)\n\n"
@@ -183,7 +184,8 @@ class EventHandler:
                 msg = MIMEMultipart()
                 msg['From'] = sender
                 msg['To'] = ', '.join(recipients)
-                msg['Subject'] = 'AI Camera - Test Email'
+                device_name = config.get('device.name', 'AI Camera')
+                msg['Subject'] = f'{device_name} - Test Email'
                 msg.attach(MIMEText('This is a test email from your AI Camera system.', 'plain'))
                 
                 server = smtplib.SMTP(smtp_host, smtp_port)

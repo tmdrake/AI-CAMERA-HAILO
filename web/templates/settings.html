@@ -14,6 +14,20 @@
         <div class="col-md-6">
             <div class="card mb-4">
                 <div class="card-header">
+                    <h5>Device Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="device_name" class="form-label">Device Name</label>
+                        <input type="text" class="form-control" id="device_name" name="device.name" value="{{ config.get('device', {}).get('name', 'AI Camera') }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
                     <h5>Detection Settings</h5>
                 </div>
                 <div class="card-body">

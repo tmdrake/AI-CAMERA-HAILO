@@ -32,6 +32,10 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__, template_folder=os.path.join(BASE_DIR, 'web', 'templates'))
 app.secret_key = 'ai-camera-secret-key-change-in-production'
 
+@app.context_processor
+def inject_config():
+    return dict(config=config.get_all())
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -203,6 +207,9 @@ def factory_reset():
     logger.info("Factory reset requested")
     
     DEFAULT_CONFIG = {
+        "device": {
+            "name": "AI Camera"
+        },
         "detection": {
             "confidence_threshold": 50,
             "person_class_only": True,

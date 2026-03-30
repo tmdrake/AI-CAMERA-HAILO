@@ -1,4 +1,7 @@
 {
+    "device": {
+        "name": "AI Camera"
+    },
     "detection": {
         "confidence_threshold": 10.0,
         "person_class_only": true,
@@ -18,7 +21,7 @@
             "smtp_host": "192.168.10.29",
             "smtp_port": 2525,
             "use_tls": false,
-            "sender_email": "dennisl@orbitelectric.com",
+            "sender_email": "its@orbitelectric.com",
             "sender_password": "",
             "recipient_emails": [
                 "dennisl@orbitelectric.com"
