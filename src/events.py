@@ -71,10 +71,14 @@ class EventHandler:
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             full_path = os.path.join(base_dir, storage_path)
             
+            logger.info(f"Saving image to: {full_path}")
+            
             os.makedirs(full_path, exist_ok=True)
             
             filename = timestamp.strftime("%Y%m%d_%H%M%S") + ".jpg"
             filepath = os.path.join(full_path, filename)
+            
+            logger.info(f"Frame type: {type(frame)}, shape: {frame.shape if hasattr(frame, 'shape') else 'N/A'}")
             
             if isinstance(frame, np.ndarray):
                 if frame.shape[2] == 3:
@@ -87,6 +91,8 @@ class EventHandler:
             
         except Exception as e:
             logger.error(f"Failed to save image: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def _send_email_alert(self, detections: List[Detection], frame, image_path: str = None):
