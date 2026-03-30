@@ -111,10 +111,6 @@ def detection_loop():
                         logger.info(f"  {d.class_name}: conf={d.confidence:.2f} at {d.bbox}")
                     event_handler.handle_detection(detections, frame, datetime.now())
                     detection_count += 1
-                    logger.info(f"Frame {frame_count}: Detected {len(detections)} person(s)")
-                    for d in detections:
-                        logger.info(f"  - {d.class_name}: conf={d.confidence:.2f} bbox={d.bbox}")
-                    event_handler.handle_detection(detections, frame, datetime.now())
             
             # Log every 30 frames (~1 second)
             if frame_count % 30 == 0:
