@@ -33,10 +33,12 @@ class EventHandler:
         if not detections:
             return False
         
+        cooldown = config.get('alerts.cooldown_seconds', 60)
+        
         with self.lock:
             current_time = time.time()
             
-            if current_time - self.last_alert_time < self.cooldown:
+            if current_time - self.last_alert_time < cooldown:
                 return False
             
             event = Event(

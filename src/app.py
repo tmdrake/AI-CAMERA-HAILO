@@ -185,6 +185,8 @@ def settings():
                 config.set('alerts.email.recipient_emails', emails)
             elif key == 'alerts.email.smtp_port':
                 config.set('alerts.email.smtp_port', int(value))
+            elif key == 'alerts.cooldown_seconds':
+                config.set('alerts.cooldown_seconds', int(value))
             elif key.startswith('alerts.email.'):
                 config.set(key, value)
             elif key.startswith('web_server.'):
