@@ -204,6 +204,7 @@ def settings():
                 config.set('recording.enabled', request.form.get('recording.enabled') == 'on')
             elif key == 'recording.retention_days':
                 config.set('recording.retention_days', int(value))
+                logger.info(f"  Set retention_days to {int(value)}")
             elif key == 'recording.record_duration_seconds':
                 config.set('recording.record_duration_seconds', int(value))
             elif key.startswith('recording.'):
