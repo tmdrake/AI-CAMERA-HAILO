@@ -10,7 +10,7 @@
     "recording": {
         "enabled": true,
         "storage_path": "recordings",
-        "retention_days": 90,
+        "retention_days": 30,
         "record_duration_seconds": 30,
         "pre_buffer_seconds": 5
     },
