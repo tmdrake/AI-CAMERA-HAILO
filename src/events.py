@@ -48,7 +48,7 @@ class EventHandler:
             )
             
             if config.get('recording.enabled', True):
-                image_path = self._save_image(frame, frame_time)
+                image_path = self._save_image(frame, frame_time, detections)
                 if image_path:
                     event.image_path = image_path
             
@@ -65,10 +65,11 @@ class EventHandler:
             
             return True
     
-    def _save_image(self, frame, timestamp: datetime) -> Optional[str]:
+    def _save_image(self, frame, timestamp: datetime, detections: List[Detection] = None) -> Optional[str]:
         try:
             from PIL import Image
             import numpy as np
+            import cv2
             
             storage_path = config.get('recording.storage_path', 'recordings')
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -86,8 +87,26 @@ class EventHandler:
             if isinstance(frame, np.ndarray):
                 if frame.shape[2] == 4:
                     frame = frame[:, :, :3]
-                if frame.shape[2] == 3:
-                    frame = frame[:, :, ::-1]
+                
+                # Convert RGB to BGR for OpenCV drawing
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                
+                # Draw bounding boxes on the frame
+                if detections:
+                    for det in detections:
+                        x, y, w, h = det.bbox
+                        conf_percent = int(det.confidence * 100)
+                        label = f"person {conf_percent}%"
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                        cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                
+                # Add timestamp
+                ts = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                cv2.putText(frame, ts, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                
+                # Convert back to RGB for PIL
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                
                 image = Image.fromarray(frame)
                 image.save(filepath, quality=85)
             

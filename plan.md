@@ -70,6 +70,8 @@ This machine has a **Hailo-8 AI Accelerator** installed via PCIe.
 -   [x] System service (systemd)
 -   [x] Logging
 -   [x] Camera resolution upgraded to 1080p
+-   [x] Bounding boxes with confidence on live stream
+-   [x] Bounding boxes with timestamp on event images
 
 ## Success Criteria
 

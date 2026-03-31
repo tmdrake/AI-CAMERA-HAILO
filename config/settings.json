@@ -3,7 +3,7 @@
         "name": "AI Camera"
     },
     "detection": {
-        "confidence_threshold": 10.0,
+        "confidence_threshold": 75.0,
         "person_class_only": true,
         "model_path": "/usr/share/hailo-models/yolov5s_personface_h8l.hef"
     },
@@ -17,15 +17,17 @@
     "alerts": {
         "enabled": true,
         "email": {
-            "enabled": false,
-            "smtp_host": "smtp.gmail.com",
-            "smtp_port": 587,
-            "use_tls": true,
-            "sender_email": "",
+            "enabled": true,
+            "smtp_host": "192.168.10.29",
+            "smtp_port": 2525,
+            "use_tls": false,
+            "sender_email": "its@orbitelectric.com",
             "sender_password": "",
-            "recipient_emails": []
+            "recipient_emails": [
+                "dennisl@orbitelectric.com"
+            ]
         },
-        "cooldown_seconds": 10
+        "cooldown_seconds": 60
     },
     "web_server": {
         "host": "0.0.0.0",

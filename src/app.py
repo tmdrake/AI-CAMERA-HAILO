@@ -49,12 +49,11 @@ def load_user(user_id):
     return User(user_id)
 
 detector = None
-event_handler = None
-camera = None
 running = False
-detection_thread = None
 latest_frame = None
 latest_frame_lock = threading.Lock()
+latest_detections = []
+latest_detections_lock = threading.Lock()
 
 def init_camera():
     global camera
@@ -103,6 +102,10 @@ def detection_loop():
                 threshold = config.get('detection.confidence_threshold', 50) / 100.0
                 detections = detector.detect(frame, threshold)
                 
+                with latest_detections_lock:
+                    global latest_detections
+                    latest_detections = detections
+                
                 if detections:
                     logger.info(f"Threshold: {threshold}, Detections: {len(detections)}")
                 
@@ -135,6 +138,22 @@ def generate_frames():
                 frame = latest_frame.copy()
             
             import cv2
+            
+            # Draw bounding boxes on frame
+            with latest_detections_lock:
+                detections = latest_detections
+            
+            if detections:
+                for det in detections:
+                    x, y, w, h = det.bbox
+                    conf_percent = int(det.confidence * 100)
+                    label = f"person {conf_percent}%"
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                    cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            
+            # Add timestamp
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            cv2.putText(frame, timestamp, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
             
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
             
