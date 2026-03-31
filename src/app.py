@@ -200,6 +200,10 @@ def settings():
                 config.set('alerts.enabled', request.form.get('alerts.enabled') == 'on')
             elif key == 'recording.enabled':
                 config.set('recording.enabled', request.form.get('recording.enabled') == 'on')
+            elif key == 'recording.retention_days':
+                config.set('recording.retention_days', int(value))
+            elif key == 'recording.record_duration_seconds':
+                config.set('recording.record_duration_seconds', int(value))
             elif key == 'alerts.email.recipient_emails':
                 emails = [e.strip() for e in value.split(',') if e.strip()]
                 config.set('alerts.email.recipient_emails', emails)
