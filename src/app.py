@@ -204,6 +204,8 @@ def settings():
                 config.set('recording.retention_days', int(value))
             elif key == 'recording.record_duration_seconds':
                 config.set('recording.record_duration_seconds', int(value))
+            elif key.startswith('recording.'):
+                config.set(key, value)
             elif key == 'alerts.email.recipient_emails':
                 emails = [e.strip() for e in value.split(',') if e.strip()]
                 config.set('alerts.email.recipient_emails', emails)
