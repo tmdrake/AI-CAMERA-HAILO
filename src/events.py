@@ -96,7 +96,7 @@ class EventHandler:
                     for det in detections:
                         x, y, w, h = det.bbox
                         conf_percent = int(det.confidence * 100)
-                        label = f"person {conf_percent}%"
+                        label = f"{det.class_name} {conf_percent}%"
                         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                         cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 

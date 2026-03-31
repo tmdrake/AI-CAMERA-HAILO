@@ -132,8 +132,9 @@ class HailoDetector:
                 width = float(output[offset + 4])
                 height = float(output[offset + 5])
                 
-                # Accept class_id 0 or 1 (unlabeled or person)
-                if class_id in [0, 1] and confidence >= confidence_threshold:
+                # Accept class_id 1 (person) or 2 (face)
+                if class_id in [1, 2] and confidence >= confidence_threshold:
+                    class_name = 'person' if class_id == 1 else 'face'
                     # Clamp and ensure minimum size
                     cx = max(0.0, min(cx, 1.0))
                     cy = max(0.0, min(cy, 1.0))
@@ -160,11 +161,11 @@ class HailoDetector:
                     bbox = (x1, y1, w, h)
                     detections.append(Detection(
                         class_id=class_id,
-                        class_name='person',
+                        class_name=class_name,
                         confidence=confidence,
                         bbox=bbox
                     ))
-                    logger.debug(f"Detection: person, conf={confidence:.2f}, bbox={bbox}")
+                    logger.debug(f"Detection: {class_name}, conf={confidence:.2f}, bbox={bbox}")
             
         except Exception as e:
             logger.error(f"Failed to parse NMS output: {e}")

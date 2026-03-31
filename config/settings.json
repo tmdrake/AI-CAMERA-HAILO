@@ -27,7 +27,7 @@
                 "dennisl@orbitelectric.com"
             ]
         },
-        "cooldown_seconds": 60
+        "cooldown_seconds": 10
     },
     "web_server": {
         "host": "0.0.0.0",
