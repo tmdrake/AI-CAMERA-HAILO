@@ -187,8 +187,10 @@ def video_feed():
 @login_required
 def settings():
     if request.method == 'POST':
+        logger.info(f"Settings POST data: {dict(request.form)}")
         for key in request.form.keys():
             value = request.form.get(key)
+            logger.info(f"  Processing key={key}, value={value}")
             
             if key == 'detection.confidence_threshold':
                 config.set('detection.confidence_threshold', float(value))
@@ -217,6 +219,8 @@ def settings():
                 config.set(key, value)
             elif key.startswith('web_server.'):
                 config.set(key, value)
+            else:
+                logger.warning(f"Unhandled setting key: {key} = {value}")
         
         config.save()
         return redirect(url_for('settings'))
