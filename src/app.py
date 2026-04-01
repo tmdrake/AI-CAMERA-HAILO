@@ -6,6 +6,7 @@ import threading
 import time
 import logging
 import io
+from collections import deque
 from datetime import datetime
 from typing import Optional
 
@@ -54,6 +55,8 @@ latest_frame = None
 latest_frame_lock = threading.Lock()
 latest_detections = []
 latest_detections_lock = threading.Lock()
+frame_buffer = deque(maxlen=15)
+frame_buffer_lock = threading.Lock()
 
 def init_camera():
     global camera
@@ -84,6 +87,7 @@ def detection_loop():
     
     frame_count = 0
     detection_count = 0
+    capture_delay = config.get('detection.capture_delay_frames', 10)
     
     while running:
         try:
@@ -92,9 +96,13 @@ def detection_loop():
                 continue
             
             frame = camera.capture_array()
+            frame_time = datetime.now()
             
             with latest_frame_lock:
                 latest_frame = frame.copy()
+            
+            with frame_buffer_lock:
+                frame_buffer.append({'frame': frame.copy(), 'time': frame_time})
             
             frame_count += 1
             
@@ -113,7 +121,31 @@ def detection_loop():
                     logger.info(f"EVENT TRIGGERED: {len(detections)} detections!")
                     for d in detections:
                         logger.info(f"  {d.class_name}: conf={d.confidence:.2f} at {d.bbox}")
-                    event_handler.handle_detection(detections, frame, datetime.now())
+                    
+                    delayed_frame = None
+                    delayed_time = frame_time
+                    
+                    with frame_buffer_lock:
+                        buffer_size = len(frame_buffer)
+                        if buffer_size > capture_delay:
+                            delayed_entry = frame_buffer[-(capture_delay + 1)]
+                            delayed_frame = delayed_entry['frame']
+                            delayed_time = delayed_entry['time']
+                            logger.info(f"Using delayed frame from {capture_delay} frames ago")
+                        elif buffer_size > 0:
+                            delayed_entry = frame_buffer[-1]
+                            delayed_frame = delayed_entry['frame']
+                            delayed_time = delayed_entry['time']
+                            logger.warning(f"Buffer not full ({buffer_size} frames), using available frame")
+                        else:
+                            delayed_frame = frame
+                            logger.warning("No buffered frames available, using current frame")
+                    
+                    if delayed_frame is not None:
+                        delayed_detections = detector.detect(delayed_frame, threshold)
+                        logger.info(f"Re-running detection on delayed frame: {len(delayed_detections)} detections")
+                        event_handler.handle_detection(delayed_detections, delayed_frame, delayed_time)
+                    
                     detection_count += 1
             
             # Log every 300 frames (~10 seconds)
@@ -121,7 +153,7 @@ def detection_loop():
                 logger.info(f"Processed {frame_count} frames, {detection_count} detections")
             
             time.sleep(0.03)
-            
+        
         except Exception as e:
             logger.error(f"Detection loop error: {e}")
             time.sleep(1)
@@ -237,7 +269,8 @@ def factory_reset():
         "detection": {
             "confidence_threshold": 50,
             "person_class_only": True,
-            "model_path": "/usr/share/hailo-models/yolov5s_personface_h8l.hef"
+            "model_path": "/usr/share/hailo-models/yolov5s_personface_h8l.hef",
+            "capture_delay_frames": 10
         },
         "recording": {
             "enabled": True,
