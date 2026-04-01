@@ -5,7 +5,7 @@
     "detection": {
         "confidence_threshold": 75.0,
         "person_class_only": true,
-        "model_path": "/usr/share/hailo-models/yolov8s_h8.hef"
+        "model_path": "/usr/share/hailo-models/yolov5s_personface_h8l.hef"
     },
     "recording": {
         "enabled": true,
