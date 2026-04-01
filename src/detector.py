@@ -41,8 +41,11 @@ class HailoDetector:
                 raise FileNotFoundError(f"Model not found: {self.model_path}")
             
             self.vdevice = VDevice()
-            model_base = os.path.splitext(os.path.basename(self.model_path))[0]
-            self.infer_model = self.vdevice.create_infer_model(self.model_path, model_base)
+            hef = HEF(self.model_path)
+            network_names = hef.get_networks_names()
+            model_name = network_names[0] if network_names else os.path.splitext(os.path.basename(self.model_path))[0]
+            logger.info(f"Loading HEF with network name: {model_name}")
+            self.infer_model = self.vdevice.create_infer_model(self.model_path, model_name)
             self.configured_model = self.infer_model.configure()
             
             # Activate the model
