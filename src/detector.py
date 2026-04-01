@@ -16,11 +16,12 @@ class Detection:
         self.bbox = bbox
 
 class HailoDetector:
-    # Model classes: 1=person, 2=face (0 is unlabeled)
-    PERSON_CLASS_ID = 1
+    # COCO classes for YOLOv8: 0=person
+    # Custom yolov5s_personface: 1=person, 2=face
     
     def __init__(self, model_path: str = None):
         self.model_path = model_path or "/usr/share/hailo-models/yolov5s_personface_h8l.hef"
+        self.model_name = os.path.basename(model_path) if model_path else "unknown"
         self.vdevice = None
         self.infer_model = None
         self.configured_model = None
@@ -40,7 +41,8 @@ class HailoDetector:
                 raise FileNotFoundError(f"Model not found: {self.model_path}")
             
             self.vdevice = VDevice()
-            self.infer_model = self.vdevice.create_infer_model(self.model_path, 'yolov5s_personface')
+            model_base = os.path.splitext(os.path.basename(self.model_path))[0]
+            self.infer_model = self.vdevice.create_infer_model(self.model_path, model_base)
             self.configured_model = self.infer_model.configure()
             
             # Activate the model
@@ -108,6 +110,20 @@ class HailoDetector:
         min_width = 10
         min_height = 10
         
+        # COCO class names for YOLOv8
+        coco_classes = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
+                        'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+                        'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
+                        'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
+                        'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+                        'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
+                        'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+                        'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear',
+                        'hair drier', 'toothbrush']
+        
+        # Determine which classes to accept based on model
+        is_personface_model = 'personface' in self.model_name.lower()
+        
         try:
             # NMS output format: [num_detections, class_id, confidence, cx, cy, width, height]
             # All coordinates normalized [0, 1] for the model input (640x640)
@@ -132,40 +148,50 @@ class HailoDetector:
                 width = float(output[offset + 4])
                 height = float(output[offset + 5])
                 
-                # Accept class_id 1 (person) or 2 (face)
-                if class_id in [1, 2] and confidence >= confidence_threshold:
-                    class_name = 'person' if class_id == 1 else 'face'
-                    # Clamp and ensure minimum size
-                    cx = max(0.0, min(cx, 1.0))
-                    cy = max(0.0, min(cy, 1.0))
-                    width = max(0.01, min(width, 1.0))
-                    height = max(0.01, min(height, 1.0))
-                    
-                    # Convert from center/width to top-left coordinates
-                    x1 = int((cx - width/2) * orig_width)
-                    y1 = int((cy - height/2) * orig_height)
-                    w = int(width * orig_width)
-                    h = int(height * orig_height)
-                    
-                    # Ensure valid bounding box
-                    x1 = max(0, min(x1, orig_width - 1))
-                    y1 = max(0, min(y1, orig_height - 1))
-                    w = max(10, min(w, orig_width - x1))
-                    h = max(10, min(h, orig_height - y1))
-                    
-                    # Filter out tiny bounding boxes (likely noise)
-                    if w < min_width or h < min_height:
-                        logger.debug(f"Filtered out small bbox: {w}x{h}")
+                # Determine if we should accept this detection
+                if is_personface_model:
+                    # yolov5s_personface: 1=person, 2=face
+                    if class_id in [1, 2] and confidence >= confidence_threshold:
+                        class_name = 'person' if class_id == 1 else 'face'
+                    else:
                         continue
-                    
-                    bbox = (x1, y1, w, h)
-                    detections.append(Detection(
-                        class_id=class_id,
-                        class_name=class_name,
-                        confidence=confidence,
-                        bbox=bbox
-                    ))
-                    logger.debug(f"Detection: {class_name}, conf={confidence:.2f}, bbox={bbox}")
+                else:
+                    # YOLOv8 (COCO): 0=person
+                    if class_id != 0 or confidence < confidence_threshold:
+                        continue
+                    class_name = 'person'
+                
+                # Clamp and ensure minimum size
+                cx = max(0.0, min(cx, 1.0))
+                cy = max(0.0, min(cy, 1.0))
+                width = max(0.01, min(width, 1.0))
+                height = max(0.01, min(height, 1.0))
+                
+                # Convert from center/width to top-left coordinates
+                x1 = int((cx - width/2) * orig_width)
+                y1 = int((cy - height/2) * orig_height)
+                w = int(width * orig_width)
+                h = int(height * orig_height)
+                
+                # Ensure valid bounding box
+                x1 = max(0, min(x1, orig_width - 1))
+                y1 = max(0, min(y1, orig_height - 1))
+                w = max(10, min(w, orig_width - x1))
+                h = max(10, min(h, orig_height - y1))
+                
+                # Filter out tiny bounding boxes (likely noise)
+                if w < min_width or h < min_height:
+                    logger.debug(f"Filtered out small bbox: {w}x{h}")
+                    continue
+                
+                bbox = (x1, y1, w, h)
+                detections.append(Detection(
+                    class_id=class_id,
+                    class_name=class_name,
+                    confidence=confidence,
+                    bbox=bbox
+                ))
+                logger.debug(f"Detection: {class_name}, conf={confidence:.2f}, bbox={bbox}")
             
         except Exception as e:
             logger.error(f"Failed to parse NMS output: {e}")
