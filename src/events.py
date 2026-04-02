@@ -97,12 +97,13 @@ class EventHandler:
                         x, y, w, h = det.bbox
                         conf_percent = int(det.confidence * 100)
                         label = f"{det.class_name} {conf_percent}%"
-                        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                        cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                        color = (0, 255, 0) if det.class_name == 'person' else (255, 0, 0)
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), color, 4)
+                        cv2.putText(frame, label, (x, y - 15), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 3)
                 
                 # Add timestamp
                 ts = timestamp.strftime("%Y-%m-%d %H:%M:%S")
-                cv2.putText(frame, ts, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                cv2.putText(frame, ts, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 3)
                 
                 # Convert back to RGB for PIL
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

@@ -180,12 +180,13 @@ def generate_frames():
                     x, y, w, h = det.bbox
                     conf_percent = int(det.confidence * 100)
                     label = f"{det.class_name} {conf_percent}%"
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                    cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    color = (0, 255, 0) if det.class_name == 'person' else (255, 0, 0)
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), color, 3)
+                    cv2.putText(frame, label, (x, y - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
             
             # Add timestamp
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            cv2.putText(frame, timestamp, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            cv2.putText(frame, timestamp, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
             
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
             

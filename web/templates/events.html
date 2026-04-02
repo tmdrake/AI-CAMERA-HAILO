@@ -52,8 +52,16 @@ function loadEvents() {
             let html = '<div class="row">';
             events.forEach((event, index) => {
                 const time = new Date(event.timestamp).toLocaleString();
-                const detectionCount = event.detections.length;
-                const confidences = event.detections.map(d => (d.confidence * 100).toFixed(1) + '%').join(', ');
+                const detections = event.detections || [];
+                const personCount = detections.filter(d => d.class_name === 'person').length;
+                const faceCount = detections.filter(d => d.class_name === 'face').length;
+                
+                let detectionText = '';
+                if (personCount > 0) detectionText += `${personCount} person(s) `;
+                if (faceCount > 0) detectionText += `${faceCount} face(s)`;
+                if (!detectionText) detectionText = '0 detections';
+                
+                const confidences = detections.map(d => (d.confidence * 100).toFixed(0) + '%').join(', ');
                 
                 const imgHtml = event.image_filename 
                     ? `<img src="/images/${event.image_filename}" class="img-thumbnail" style="max-height: 100px; cursor: pointer;" onclick="showImage('${event.image_filename}')" alt="Event">`
@@ -64,7 +72,7 @@ function loadEvents() {
                         <div class="card-body p-2">
                             <div class="text-center mb-2">${imgHtml}</div>
                             <small><strong>${time}</strong></small><br>
-                            <small class="text-muted">${detectionCount} person(s)</small><br>
+                            <small class="text-muted">${detectionText}</small><br>
                             <small class="text-muted">${confidences}</small>
                         </div>
                     </div>
