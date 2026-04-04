@@ -144,7 +144,17 @@ def detection_loop():
                     if delayed_frame is not None:
                         delayed_detections = detector.detect(delayed_frame, threshold)
                         logger.info(f"Re-running detection on delayed frame: {len(delayed_detections)} detections")
-                        event_handler.handle_detection(delayed_detections, delayed_frame, delayed_time)
+                        
+                        # Use original detections if delayed frame has none
+                        if delayed_detections:
+                            final_detections = delayed_detections
+                            final_frame = delayed_frame
+                        else:
+                            final_detections = detections
+                            final_frame = frame
+                            logger.warning("Delayed frame had no detections, using current frame")
+                        
+                        event_handler.handle_detection(final_detections, final_frame, delayed_time)
                     
                     detection_count += 1
             
