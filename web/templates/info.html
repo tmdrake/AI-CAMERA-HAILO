@@ -26,8 +26,15 @@
 {% block extra_js %}
 <script>
 function loadSystemInfo() {
-    fetch('/api/hardware')
-        .then(response => response.json())
+    fetch('/api/hardware', {
+        credentials: 'same-origin'
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Not authenticated or server error');
+            }
+            return response.json();
+        })
         .then(data => {
             const container = document.getElementById('infoContent');
             let html = '';
@@ -89,10 +96,10 @@ function loadSystemInfo() {
                             <h5>System Resources</h5>
                         </div>
                         <div class="card-body">
-                            <p><strong>CPU Usage:</strong> ${data.cpu_usage || 'N/A'}%</p>
-                            <p><strong>RAM Usage:</strong> ${data.ram_usage || 'N/A'}%</p>
-                            <p><strong>Storage Used:</strong> ${data.storage_used || 'N/A'}</p>
-                            <p><strong>Storage Available:</strong> ${data.storage_available || 'N/A'}</p>
+                             <p><strong>CPU Usage:</strong> ${data.system && data.system.cpu_usage ? data.system.cpu_usage + '%' : 'N/A'}</p>
+                             <p><strong>RAM Usage:</strong> ${data.system && data.system.ram_used_percent ? data.system.ram_used_percent + '%' : 'N/A'}</p>
+                             <p><strong>Storage Used:</strong> ${data.storage && data.storage.recordings_size_mb ? data.storage.recordings_size_mb + ' MB' : 'N/A'}</p>
+                             <p><strong>Storage Available:</strong> ${data.system && data.system.disk_total_gb ? (data.system.disk_total_gb - (data.system.disk_used_gb || 0)).toFixed(1) + ' GB' : 'N/A'}</p>
                         </div>
                     </div>
                 </div>
