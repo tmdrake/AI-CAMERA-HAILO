@@ -3,9 +3,10 @@
         "name": "AI Camera"
     },
     "detection": {
-        "confidence_threshold": 25.0,
+        "confidence_threshold": 60.0,
         "person_class_only": true,
-        "model_path": "/usr/share/hailo-models/yolov5s_personface_h8l.hef"
+        "model_path": "/usr/share/hailo-models/yolov5s_personface_h8l.hef",
+        "roi_percent": 80.0
     },
     "recording": {
         "enabled": true,
@@ -17,7 +18,7 @@
     "alerts": {
         "enabled": true,
         "email": {
-            "enabled": true,
+            "enabled": false,
             "smtp_host": "192.168.10.29",
             "smtp_port": 2525,
             "use_tls": false,
@@ -36,9 +37,9 @@
         "password": "admin123"
     },
     "camera": {
-        "width": 1920,
-        "height": 1080,
-        "framerate": 30,
+        "width": 640,
+        "height": 480,
+        "framerate": 25,
         "rotation": 0
     },
     "schedule": {

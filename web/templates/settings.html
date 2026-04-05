@@ -35,6 +35,17 @@
                         <label for="confidence_threshold" class="form-label">Confidence Threshold</label>
                         <input type="range" class="form-range" min="0" max="100" step="5" id="confidence_threshold" name="detection.confidence_threshold" value="{{ config.get('detection', {}).get('confidence_threshold', 50) }}">
                         <span id="thresholdValue">{{ config.get('detection', {}).get('confidence_threshold', 50)|int }}%</span>
+                        <script>
+                        document.getElementById('roi_percent').addEventListener('input', function() {
+                            document.getElementById('roiValue').textContent = this.value + '%';
+                        });
+                        </script>
+                    </div>
+                    <div class="mb-3">
+                        <label for="roi_percent" class="form-label">ROI Size (%) - Detection Area</label>
+                        <input type="range" class="form-range" min="50" max="90" step="5" id="roi_percent" name="detection.roi_percent" value="{{ config.get('detection', {}).get('roi_percent', 80) }}">
+                        <span id="roiValue">{{ config.get('detection', {}).get('roi_percent', 80)|int }}%</span>
+                        <small class="text-muted">Larger = bigger detection area (80% recommended)</small>
                     </div>
                     <div class="mb-3">
                         <label for="cooldown_seconds" class="form-label">Redetection Interval (seconds)</label>

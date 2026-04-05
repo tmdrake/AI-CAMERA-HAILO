@@ -87,7 +87,7 @@ def detection_loop():
     
     frame_count = 0
     detection_count = 0
-    capture_delay = config.get('detection.capture_delay_frames', 10)
+    capture_delay = config.get('detection.capture_delay_frames', 3)
     
     while running:
         try:
@@ -172,6 +172,17 @@ def generate_frames():
             with latest_detections_lock:
                 detections = latest_detections
             
+            # Draw ROI rectangle (Center 80% area) - visual indicator
+            height, width = frame.shape[:2]
+            roi_size = int(min(width, height) * 0.80)
+            x_start = (width - roi_size) // 2
+            y_start = (height - roi_size) // 2
+            # Draw thick cyan rectangle for ROI with label
+            cv2.rectangle(frame, (x_start, y_start), (x_start + roi_size, y_start + roi_size), 
+                         (0, 255, 255), 3)
+            cv2.putText(frame, "DETECTION AREA (80%)", (x_start, y_start - 10), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+            
             if detections:
                 for det in detections:
                     x, y, w, h = det.bbox
@@ -222,6 +233,8 @@ def settings():
             
             if key == 'detection.confidence_threshold':
                 config.set('detection.confidence_threshold', float(value))
+            elif key == 'detection.roi_percent':
+                config.set('detection.roi_percent', float(value))
             elif key == 'alerts.email.enabled':
                 config.set('alerts.email.enabled', request.form.get('alerts.email.enabled') == 'on')
             elif key == 'alerts.email.use_tls':

@@ -68,9 +68,17 @@ class HailoDetector:
             return []
         
         try:
+            # Center ROI - configurable percentage from settings (default 80%)
             orig_height, orig_width = frame.shape[:2]
+            roi_percent = config.get('detection.roi_percent', 80.0) / 100.0
+            roi_size = int(min(orig_width, orig_height) * roi_percent)
+            x_start = (orig_width - roi_size) // 2
+            y_start = (orig_height - roi_size) // 2
             
-            resized = cv2.resize(frame, (self.input_shape[1], self.input_shape[0]))
+            # Crop to center ROI
+            roi_frame = frame[y_start:y_start+roi_size, x_start:x_start+roi_size]
+            
+            resized = cv2.resize(roi_frame, (self.input_shape[1], self.input_shape[0]))
             resized = cv2.cvtColor(resized, cv2.COLOR_RGB2BGR)
             
             np.copyto(self.input_buffer, resized)
@@ -81,7 +89,7 @@ class HailoDetector:
             
             self.configured_model.run([bindings], 1000)
             
-            detections = self._parse_nms_output(self.output_buffer, confidence_threshold, (orig_height, orig_width), (self.input_shape[0], self.input_shape[1]))
+            detections = self._parse_nms_output(self.output_buffer, confidence_threshold, (orig_height, orig_width), (self.input_shape[0], self.input_shape[1]), roi_size, x_start, y_start)
             
             return detections
             
@@ -89,11 +97,11 @@ class HailoDetector:
             logger.error(f"Inference failed: {e}")
             return []
 
-    def _parse_nms_output(self, output: np.ndarray, confidence_threshold: float, orig_shape, model_shape) -> List[Detection]:
+    def _parse_nms_output(self, output: np.ndarray, confidence_threshold: float, orig_shape, model_shape, roi_size=None, x_offset=0, y_offset=0) -> List[Detection]:
         detections = []
         
-        min_width = 40
-        min_height = 40
+        min_width = 25
+        min_height = 25
         
         is_personface_model = 'personface' in self.model_name.lower()
         
@@ -103,6 +111,12 @@ class HailoDetector:
             
             num_dets = int(output[0])
             orig_height, orig_width = orig_shape[:2]
+            
+            # Use ROI parameters passed from detect() method (x_offset, y_offset are the top-left of ROI)
+            if roi_size is None:
+                roi_size = int(min(orig_width, orig_height) * 0.60)
+                x_offset = (orig_width - roi_size) // 2
+                y_offset = (orig_height - roi_size) // 2
             
             for i in range(min(num_dets, 50)):
                 offset = 1 + i * 6
@@ -134,10 +148,11 @@ class HailoDetector:
                 width = max(0.01, min(width, 1.0))
                 height = max(0.01, min(height, 1.0))
                 
-                x1 = int((cx - width/2) * orig_width)
-                y1 = int((cy - height/2) * orig_height)
-                w = int(width * orig_width)
-                h = int(height * orig_height)
+                # Adjust coordinates from ROI space back to full frame space
+                x1 = int((cx - width/2) * roi_size + x_offset)
+                y1 = int((cy - height/2) * roi_size + y_offset)
+                w = int(width * roi_size)
+                h = int(height * roi_size)
                 
                 x1 = max(0, min(x1, orig_width - 1))
                 y1 = max(0, min(y1, orig_height - 1))
