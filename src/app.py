@@ -356,6 +356,11 @@ def events():
 def recordings():
     return render_template('recordings.html')
 
+@app.route('/info')
+@login_required
+def info():
+    return render_template('info.html')
+
 @app.route('/api/events')
 @login_required
 def api_events():
@@ -434,6 +439,75 @@ def api_status():
         'recording_enabled': config.get('recording.enabled', True),
         'camera_present': camera is not None,
         'config': config.get_all()
+    })
+
+@app.route('/api/hardware')
+@login_required
+def api_hardware():
+    """Return detailed hardware and system information"""
+    import os
+    from datetime import datetime
+    try:
+        import psutil
+        has_psutil = True
+    except ImportError:
+        has_psutil = False
+    
+    storage_path = config.get('recording.storage_path', 'recordings')
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    full_path = os.path.join(base_dir, storage_path)
+    
+    # Storage information
+    storage_info = {}
+    if os.path.exists(full_path):
+        total_size = 0
+        file_count = 0
+        for filename in os.listdir(full_path):
+            if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+                file_path = os.path.join(full_path, filename)
+                total_size += os.path.getsize(file_path)
+                file_count += 1
+        storage_info = {
+            'recordings_count': file_count,
+            'recordings_size_mb': round(total_size / (1024*1024), 2),
+            'recordings_path': full_path
+        }
+    
+    # System resources
+    if has_psutil:
+        try:
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
+            
+            system_info = {
+                'cpu_usage': round(cpu_percent, 1),
+                'ram_used_percent': memory.percent,
+                'ram_used_gb': round(memory.used / (1024**3), 2),
+                'ram_total_gb': round(memory.total / (1024**3), 2),
+                'disk_used_percent': disk.percent,
+                'disk_used_gb': round(disk.used / (1024**3), 2),
+                'disk_total_gb': round(disk.total / (1024**3), 2)
+            }
+        except Exception as e:
+            system_info = {'error': f'Could not retrieve system metrics: {str(e)}'}
+    else:
+        system_info = {'note': 'psutil not available - install with: pip install psutil'}
+    
+    return jsonify({
+        'device_name': config.get('device.name', 'AI Camera'),
+        'service_status': 'Running',
+        'camera_resolution': f"{config.get('camera.width', 640)}x{config.get('camera.height', 480)}",
+        'camera_framerate': config.get('camera.framerate', 25),
+        'hailo_device': 'Hailo-8 AI Accelerator',
+        'hailo_status': 'Connected' if os.path.exists('/dev/hailo0') else 'Not Found',
+        'roi_percent': config.get('detection.roi_percent', 85.0),
+        'threshold': config.get('detection.confidence_threshold', 25.0),
+        'frames_processed': 0,  # Would need tracking
+        'detections': len(event_handler.events) if event_handler else 0,
+        'storage': storage_info,
+        'system': system_info,
+        'timestamp': datetime.now().isoformat()
     })
 
 @app.route('/login', methods=['GET', 'POST'])

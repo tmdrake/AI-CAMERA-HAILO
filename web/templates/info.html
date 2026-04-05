@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}System Info - AI Camera{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2 class="mb-4">System Information</h2>
+        <p class="text-muted">Hardware and system diagnostics</p>
+        <button class="btn btn-primary mb-3" onclick="refreshInfo()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+    </div>
+</div>
+
+<div class="row" id="infoContent">
+    <!-- Content will be loaded by JavaScript -->
+    <div class="col-12 text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading system information...</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function loadSystemInfo() {
+    fetch('/api/hardware')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('infoContent');
+            let html = '';
+            
+            // System Overview
+            html += `
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5>System Overview</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Device:</strong> ${data.device_name || 'AI Camera'}</p>
+                            <p><strong>Status:</strong> <span class="badge bg-success">Running</span></p>
+                            <p><strong>Uptime:</strong> ${data.uptime || 'N/A'}</p>
+                            <p><strong>Service:</strong> ${data.service_status || 'Active'}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Hardware
+            html += `
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5>Hailo Hardware</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Model:</strong> Hailo-8 AI Accelerator</p>
+                            <p><strong>Device:</strong> ${data.hailo_device || 'Detected'}</p>
+                            <p><strong>Status:</strong> ${data.hailo_status || 'OK'}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Camera
+            html += `
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5>Camera</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Resolution:</strong> ${data.camera_resolution || '640x480'}</p>
+                            <p><strong>Framerate:</strong> ${data.camera_framerate || '25'} fps</p>
+                            <p><strong>Status:</strong> ${data.camera_status || 'Connected'}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // System Resources
+            html += `
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h5>System Resources</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>CPU Usage:</strong> ${data.cpu_usage || 'N/A'}%</p>
+                            <p><strong>RAM Usage:</strong> ${data.ram_usage || 'N/A'}%</p>
+                            <p><strong>Storage Used:</strong> ${data.storage_used || 'N/A'}</p>
+                            <p><strong>Storage Available:</strong> ${data.storage_available || 'N/A'}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Detection Stats
+            html += `
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h5>Detection Statistics</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Frames Processed:</strong> ${data.frames_processed || 0}</p>
+                            <p><strong>Detections:</strong> ${data.detections || 0}</p>
+                            <p><strong>ROI Size:</strong> ${data.roi_percent || 85}%</p>
+                            <p><strong>Threshold:</strong> ${data.threshold || 25}%</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error loading system info:', error);
+            document.getElementById('infoContent').innerHTML = 
+                '<div class="col-12"><div class="alert alert-danger">Error loading system information. Please try again.</div></div>';
+        });
+}
+
+function refreshInfo() {
+    const container = document.getElementById('infoContent');
+    container.innerHTML = `
+        <div class="col-12 text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Refreshing...</span>
+            </div>
+        </div>
+    `;
+    loadSystemInfo();
+}
+
+// Load info when page loads
+document.addEventListener('DOMContentLoaded', loadSystemInfo);
+
+// Auto-refresh every 30 seconds
+setInterval(() => {
+    if (document.visibilityState === 'visible') {
+        loadSystemInfo();
+    }
+}, 30000);
+</script>
+{% endblock %}
