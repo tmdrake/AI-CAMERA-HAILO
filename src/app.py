@@ -172,25 +172,34 @@ def generate_frames():
             with latest_detections_lock:
                 detections = latest_detections
             
-            # Draw ROI rectangle (Center 80% area) - visual indicator
+            # Draw ROI rectangle - visual indicator using current config
             height, width = frame.shape[:2]
-            roi_size = int(min(width, height) * 0.80)
+            roi_percent = config.get('detection.roi_percent', 80.0) / 100.0
+            roi_size = int(min(width, height) * roi_percent)
             x_start = (width - roi_size) // 2
             y_start = (height - roi_size) // 2
-            # Draw thick cyan rectangle for ROI with label
+            # Draw thick cyan rectangle for ROI with dynamic label
             cv2.rectangle(frame, (x_start, y_start), (x_start + roi_size, y_start + roi_size), 
-                         (0, 255, 255), 3)
-            cv2.putText(frame, "DETECTION AREA (80%)", (x_start, y_start - 10), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+                         (0, 255, 255), 4)
+            cv2.putText(frame, f"DETECTION AREA ({int(roi_percent*100)}%)", (x_start, y_start - 10), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
             
             if detections:
                 for det in detections:
                     x, y, w, h = det.bbox
                     conf_percent = int(det.confidence * 100)
-                    label = f"{det.class_name} {conf_percent}%"
-                    color = (0, 255, 0) if det.class_name == 'person' else (255, 0, 0)
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), color, 3)
-                    cv2.putText(frame, label, (x, y - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
+                    label = f"{det.class_name.upper()} {conf_percent}%"
+                    if det.class_name == 'person':
+                        color = (0, 255, 0)  # Green for person
+                        thickness = 4
+                        font_scale = 0.9
+                    else:
+                        color = (255, 0, 255)  # Magenta for face
+                        thickness = 5
+                        font_scale = 1.1
+                    # Draw with thicker lines and ensure box is visible
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), color, thickness)
+                    cv2.putText(frame, label, (x, y - 25), cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, 3)
             
             # Add timestamp
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

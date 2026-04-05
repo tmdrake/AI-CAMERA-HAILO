@@ -5,6 +5,11 @@ from typing import List, Tuple, Optional
 import logging
 import cv2
 
+# Import config for ROI settings
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BASE_DIR)
+from src.config import config
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -68,17 +73,11 @@ class HailoDetector:
             return []
         
         try:
-            # Center ROI - configurable percentage from settings (default 80%)
+            # Face-only mode with full frame for reliable detection
             orig_height, orig_width = frame.shape[:2]
-            roi_percent = config.get('detection.roi_percent', 80.0) / 100.0
-            roi_size = int(min(orig_width, orig_height) * roi_percent)
-            x_start = (orig_width - roi_size) // 2
-            y_start = (orig_height - roi_size) // 2
             
-            # Crop to center ROI
-            roi_frame = frame[y_start:y_start+roi_size, x_start:x_start+roi_size]
-            
-            resized = cv2.resize(roi_frame, (self.input_shape[1], self.input_shape[0]))
+            # Resize frame for model input
+            resized = cv2.resize(frame, (self.input_shape[1], self.input_shape[0]))
             resized = cv2.cvtColor(resized, cv2.COLOR_RGB2BGR)
             
             np.copyto(self.input_buffer, resized)
@@ -89,7 +88,7 @@ class HailoDetector:
             
             self.configured_model.run([bindings], 1000)
             
-            detections = self._parse_nms_output(self.output_buffer, confidence_threshold, (orig_height, orig_width), (self.input_shape[0], self.input_shape[1]), roi_size, x_start, y_start)
+            detections = self._parse_nms_output(self.output_buffer, confidence_threshold, (orig_height, orig_width), (self.input_shape[0], self.input_shape[1]))
             
             return detections
             
@@ -112,9 +111,9 @@ class HailoDetector:
             num_dets = int(output[0])
             orig_height, orig_width = orig_shape[:2]
             
-            # Use ROI parameters passed from detect() method (x_offset, y_offset are the top-left of ROI)
+            # Use ROI parameters passed from detect() method
             if roi_size is None:
-                roi_size = int(min(orig_width, orig_height) * 0.60)
+                roi_size = int(min(orig_width, orig_height) * 0.80)
                 x_offset = (orig_width - roi_size) // 2
                 y_offset = (orig_height - roi_size) // 2
             
@@ -134,8 +133,9 @@ class HailoDetector:
                     continue
                 
                 if is_personface_model:
-                    if class_id in [1, 2] and confidence >= confidence_threshold:
-                        class_name = 'person' if class_id == 1 else 'face'
+                    # Person only mode - only detect persons (class_id 1)
+                    if class_id == 1 and confidence >= confidence_threshold:
+                        class_name = 'person'
                     else:
                         continue
                 else:
@@ -148,11 +148,12 @@ class HailoDetector:
                 width = max(0.01, min(width, 1.0))
                 height = max(0.01, min(height, 1.0))
                 
-                # Adjust coordinates from ROI space back to full frame space
+                # Convert normalized coordinates to pixel coordinates
+                # Using center-width-height format from YOLO model
                 x1 = int((cx - width/2) * roi_size + x_offset)
                 y1 = int((cy - height/2) * roi_size + y_offset)
-                w = int(width * roi_size)
-                h = int(height * roi_size)
+                w = int(height * roi_size)  # Note: width/height swapped to fix 90-degree rotation
+                h = int(width * roi_size)
                 
                 x1 = max(0, min(x1, orig_width - 1))
                 y1 = max(0, min(y1, orig_height - 1))

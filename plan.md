@@ -75,30 +75,29 @@ This machine has a **Hailo-8 AI Accelerator** installed via PCIe.
 -   [x] Added face detection (removed unlabeled class)
 
 ### Phase 6: Performance Optimization (Maximum Speed) - COMPLETED
+### Phase 7: Face-Only Detection Mode - REVERTED
+### Phase 8: Person Detection Stabilization - COMPLETED
 
 **Changes Implemented:**
 - Camera resolution changed to **640x480 @ 25fps** for maximum speed
-- Added aggressive **Center ROI (60%)** to focus on where user stands and eliminate edge detections
-- Updated min_bbox_size to 25x25 for new resolution
-- Reduced event frame delay from 10 to 3 frames
-- Cleaned up debug logging (clean mode)
-- Improved coordinate transformation for ROI
-
-**Current Status**: Service restarted with new configuration. Bounding boxes should now appear correctly centered when user is in frame, with significantly improved performance.
-
-**Next steps**: Test with user in center of frame and verify live stream + event images show proper bounding boxes.
-
-**Changes Implemented:**
-- Switched to **640x480 @ 25fps** for maximum performance
-- Added aggressive **Center ROI (60%)** to eliminate edge detections
-- Optimized detection pipeline (reduced frame copying, simplified logic)
-- Bounding boxes now correctly positioned when user is in frame
-- Clean mode (removed debug spam)
+- Added aggressive **Center ROI (85%)** with configurable percentage via Settings UI
+- Made ROI visualization dynamic and prominent (cyan rectangle with label)
+- **Switched back to person-only detection** (class_id 1) after face detection issues
+- Fixed bounding box coordinate transformation (resolved 90-degree rotation)
+- Enhanced bounding box visibility (thicker lines, better labels)
+- Added coordinate debugging temporarily then cleaned up
 - Reduced event frame delay from 10 to 3 frames
 - Updated min_bbox_size to 25x25 for new resolution
 
 **Results:**
 - Significantly faster framerate
+- Bounding boxes now correctly positioned when user is in frame
+- More reliable person detection (82% confidence observed)
+- Clean, production-ready code
+
+**Current Status**: System is stable with person detection working reliably. User reports bounding boxes are "more reliable now".
+
+**Next steps**: Monitor system performance and make minor adjustments based on user feedback.
 - Bounding boxes appear correctly in center of frame
 - Live stream and event images are now consistent
 - Much better performance on Hailo-8

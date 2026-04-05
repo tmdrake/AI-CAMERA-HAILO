@@ -45,7 +45,7 @@
                         <label for="roi_percent" class="form-label">ROI Size (%) - Detection Area</label>
                         <input type="range" class="form-range" min="50" max="90" step="5" id="roi_percent" name="detection.roi_percent" value="{{ config.get('detection', {}).get('roi_percent', 80) }}">
                         <span id="roiValue">{{ config.get('detection', {}).get('roi_percent', 80)|int }}%</span>
-                        <small class="text-muted">Larger = bigger detection area (80% recommended)</small>
+                        <small class="text-muted">Larger = bigger detection area (80% recommended). Changes save automatically.</small>
                     </div>
                     <div class="mb-3">
                         <label for="cooldown_seconds" class="form-label">Redetection Interval (seconds)</label>
