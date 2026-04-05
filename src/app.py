@@ -501,6 +501,11 @@ def api_hardware():
         'camera_framerate': config.get('camera.framerate', 25),
         'hailo_device': 'Hailo-8 AI Accelerator',
         'hailo_status': 'Connected' if os.path.exists('/dev/hailo0') else 'Not Found',
+        'platform_model': 'Raspberry Pi',
+        'architecture': 'ARM64',
+        'temperature': 'N/A',  # Would use vcgencmd measure_temp
+        'i2c_status': 'Available' if os.path.exists('/dev/i2c-1') else 'Not Found',
+        'network_status': 'Connected',  # Simplified network status
         'roi_percent': config.get('detection.roi_percent', 85.0),
         'threshold': config.get('detection.confidence_threshold', 25.0),
         'frames_processed': 0,  # Would need tracking
