@@ -114,14 +114,7 @@ def detection_loop():
                     global latest_detections
                     latest_detections = detections
                 
-                if detections:
-                    logger.info(f"Threshold: {threshold}, Detections: {len(detections)}")
-                
                 if detections and event_handler:
-                    logger.info(f"EVENT TRIGGERED: {len(detections)} detections!")
-                    for d in detections:
-                        logger.info(f"  {d.class_name}: conf={d.confidence:.2f} at {d.bbox}")
-                    
                     delayed_frame = None
                     delayed_time = frame_time
                     
@@ -131,28 +124,22 @@ def detection_loop():
                             delayed_entry = frame_buffer[-(capture_delay + 1)]
                             delayed_frame = delayed_entry['frame']
                             delayed_time = delayed_entry['time']
-                            logger.info(f"Using delayed frame from {capture_delay} frames ago")
                         elif buffer_size > 0:
                             delayed_entry = frame_buffer[-1]
                             delayed_frame = delayed_entry['frame']
                             delayed_time = delayed_entry['time']
-                            logger.warning(f"Buffer not full ({buffer_size} frames), using available frame")
                         else:
                             delayed_frame = frame
-                            logger.warning("No buffered frames available, using current frame")
                     
                     if delayed_frame is not None:
                         delayed_detections = detector.detect(delayed_frame, threshold)
-                        logger.info(f"Re-running detection on delayed frame: {len(delayed_detections)} detections")
                         
-                        # Use original detections if delayed frame has none
                         if delayed_detections:
                             final_detections = delayed_detections
                             final_frame = delayed_frame
                         else:
                             final_detections = detections
                             final_frame = frame
-                            logger.warning("Delayed frame had no detections, using current frame")
                         
                         event_handler.handle_detection(final_detections, final_frame, delayed_time)
                     
