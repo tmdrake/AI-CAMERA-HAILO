@@ -92,8 +92,8 @@ class HailoDetector:
     def _parse_nms_output(self, output: np.ndarray, confidence_threshold: float, orig_shape, model_shape) -> List[Detection]:
         detections = []
         
-        min_width = 80
-        min_height = 80
+        min_width = 40
+        min_height = 40
         
         is_personface_model = 'personface' in self.model_name.lower()
         
