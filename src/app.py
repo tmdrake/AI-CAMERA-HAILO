@@ -55,7 +55,7 @@ latest_frame = None
 latest_frame_lock = threading.Lock()
 latest_detections = []
 latest_detections_lock = threading.Lock()
-frame_buffer = deque(maxlen=15)
+frame_buffer = deque(maxlen=6)
 frame_buffer_lock = threading.Lock()
 
 def init_camera():
@@ -351,6 +351,11 @@ def events():
     events = event_handler.get_recent_events(50)
     return render_template('events.html', events=events)
 
+@app.route('/recordings')
+@login_required
+def recordings():
+    return render_template('recordings.html')
+
 @app.route('/api/events')
 @login_required
 def api_events():
@@ -362,6 +367,31 @@ def api_events():
         'image_path': e.image_path,
         'image_filename': os.path.basename(e.image_path) if e.image_path else None
     } for e in events])
+
+@app.route('/api/recordings')
+@login_required
+def api_recordings():
+    """Return list of all recordings for the gallery"""
+    import os
+    from datetime import datetime
+    
+    storage_path = config.get('recording.storage_path', 'recordings')
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    full_path = os.path.join(base_dir, storage_path)
+    
+    recordings = []
+    if os.path.exists(full_path):
+        for filename in sorted(os.listdir(full_path), reverse=True):
+            if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+                file_path = os.path.join(full_path, filename)
+                timestamp = datetime.fromtimestamp(os.path.getmtime(file_path))
+                recordings.append({
+                    'filename': filename,
+                    'timestamp': timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                    'size': os.path.getsize(file_path)
+                })
+    
+    return jsonify(recordings[:50])  # Limit to 50 most recent
 
 @app.route('/images/<filename>')
 @login_required

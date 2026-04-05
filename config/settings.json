@@ -3,10 +3,10 @@
         "name": "AI Camera"
     },
     "detection": {
-        "confidence_threshold": 20.0,
+        "confidence_threshold": 50.0,
         "person_only": true,
         "model_path": "/usr/share/hailo-models/yolov5s_personface_h8l.hef",
-        "roi_percent": 85.0
+        "roi_percent": 80.0
     },
     "recording": {
         "enabled": true,

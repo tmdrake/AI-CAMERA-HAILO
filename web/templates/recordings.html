@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Recordings - AI Camera{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2 class="mb-4">Recordings Gallery</h2>
+        <p class="text-muted">All captured detection images</p>
+    </div>
+</div>
+
+<div class="row" id="recordingsGrid">
+    <div class="col-12">
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading recordings...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for viewing full image -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Recording</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" src="" class="img-fluid" alt="Recording">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function loadRecordings() {
+    fetch('/api/recordings')
+        .then(response => response.json())
+        .then(recordings => {
+            const container = document.getElementById('recordingsGrid');
+            if (recordings.length === 0) {
+                container.innerHTML = '<div class="col-12"><p class="text-muted">No recordings found.</p></div>';
+                return;
+            }
+            
+            let html = '';
+            recordings.forEach(recording => {
+                html += `
+                    <div class="col-md-3 col-sm-4 col-6 mb-4">
+                        <div class="card h-100">
+                            <img src="/images/${recording.filename}" class="card-img-top" alt="${recording.filename}" 
+                                 style="height: 180px; object-fit: cover; cursor: pointer;" 
+                                 onclick="showImage('${recording.filename}', '${recording.timestamp}')">
+                            <div class="card-body">
+                                <small class="text-muted">${recording.timestamp}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error loading recordings:', error);
+            document.getElementById('recordingsGrid').innerHTML = 
+                '<div class="col-12"><p class="text-danger">Error loading recordings.</p></div>';
+        });
+}
+
+function showImage(filename, timestamp) {
+    document.getElementById('modalImage').src = '/images/' + filename;
+    document.getElementById('modalTitle').textContent = 'Recording - ' + timestamp;
+    const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+    modal.show();
+}
+
+// Load recordings when page loads
+document.addEventListener('DOMContentLoaded', loadRecordings);
+</script>
+{% endblock %}

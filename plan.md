@@ -95,12 +95,22 @@ This machine has a **Hailo-8 AI Accelerator** installed via PCIe.
 - More reliable person detection (82% confidence observed)
 - Clean, production-ready code
 
-**Current Status**: System is stable with person detection working reliably. User reports bounding boxes are "more reliable now".
+**Current Status**: System is stable with person detection working reliably. User reports bounding boxes are "more reliable now" and can see themselves detected at 82% confidence. Cyan ROI rectangle appears intermittently.
 
-**Next steps**: Monitor system performance and make minor adjustments based on user feedback.
-- Bounding boxes appear correctly in center of frame
-- Live stream and event images are now consistent
-- Much better performance on Hailo-8
+**User Feedback & Next Steps:**
+- Reduce frame buffer from 15 to **6 frames** (less memory overhead while maintaining pre-buffering)
+- Add **Recordings Gallery** feature to browse photos in `recordings/` directory
+- Investigate why cyan ROI appears "every now and then but not continuous"
+- Consider threshold tuning (user noted YOLO should detect continuously per frame)
+- User may try Hailo's demo for comparison down the road
+
+**Immediate Tasks - IN PROGRESS:**
+- [x] Update frame buffer to maxlen=6 (reduced from 15)
+- [ ] Create `/recordings` gallery page with thumbnails and modal viewing
+- [ ] Ensure ROI visualization is consistent on every frame (appears intermittently)
+- [ ] Fine-tune detection parameters for more reliable continuous detection (threshold tuning)
+
+**Current Focus**: Gallery feature and fixing intermittent ROI visibility.
 
 ## Success Criteria
 

@@ -73,10 +73,10 @@ class HailoDetector:
             return []
         
         try:
-            # Face-only mode with full frame for reliable detection
+            # Full frame detection with proper scaling for 640x480 frame
             orig_height, orig_width = frame.shape[:2]
             
-            # Resize frame for model input
+            # Resize frame for model input (640x640 square)
             resized = cv2.resize(frame, (self.input_shape[1], self.input_shape[0]))
             resized = cv2.cvtColor(resized, cv2.COLOR_RGB2BGR)
             
@@ -88,7 +88,7 @@ class HailoDetector:
             
             self.configured_model.run([bindings], 1000)
             
-            detections = self._parse_nms_output(self.output_buffer, confidence_threshold, (orig_height, orig_width), (self.input_shape[0], self.input_shape[1]))
+            detections = self._parse_nms_output(self.output_buffer, confidence_threshold, (orig_height, orig_width), (self.input_shape[0], self.input_shape[1]), orig_width, 0, 0)
             
             return detections
             
@@ -111,11 +111,8 @@ class HailoDetector:
             num_dets = int(output[0])
             orig_height, orig_width = orig_shape[:2]
             
-            # Use ROI parameters passed from detect() method
-            if roi_size is None:
-                roi_size = int(min(orig_width, orig_height) * 0.80)
-                x_offset = (orig_width - roi_size) // 2
-                y_offset = (orig_height - roi_size) // 2
+            # Use full frame scaling (no ROI for now to fix positioning)
+            # The roi_size parameter is now used as orig_width for scaling
             
             for i in range(min(num_dets, 50)):
                 offset = 1 + i * 6
@@ -149,11 +146,11 @@ class HailoDetector:
                 height = max(0.01, min(height, 1.0))
                 
                 # Convert normalized coordinates to pixel coordinates
-                # Using center-width-height format from YOLO model
-                x1 = int((cx - width/2) * roi_size + x_offset)
-                y1 = int((cy - height/2) * roi_size + y_offset)
-                w = int(height * roi_size)  # Note: width/height swapped to fix 90-degree rotation
-                h = int(width * roi_size)
+                # Scale from model input (640x640) to original frame (640x480)
+                x1 = int((cx - width/2) * orig_width)
+                y1 = int((cy - height/2) * orig_height)
+                w = int(width * orig_width)
+                h = int(height * orig_height)
                 
                 x1 = max(0, min(x1, orig_width - 1))
                 y1 = max(0, min(y1, orig_height - 1))
